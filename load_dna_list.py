@@ -5,158 +5,138 @@ Created on Wed Jul 11 14:39:11 2018
 @author: mayn
 """
 
-import json
 import matplotlib.pyplot as plt
 
+import DNA_Geometry
+import DNA_Object
+import DNA_File
+import DrawShape
+import Util
+from shapely.geometry import LineString
 
-def load_dna(file_name):
-    f = open(file_name, encoding='utf-8')
-    dna_list = json.load(f)
-    return dna_list
+def show_room_layout(dna, vec_room2bed, vec_room2window, trans_vec, room_name):     
+    vec_window2bed = {}    
+    vec_window2bed['x'] = []
+    vec_window2bed['y'] = []
+    room = DNA_Object.get_room_by_usagename(dna, room_name)
+    #print(dna['solutionId'], room['roomUsageName'])
+    
+    if 'doors' in dna:
+        door_num, door_pos = DNA_Object.get_door_from_dna(dna)
+    else:
+        door_center, door_num, door_pos = DNA_Object.get_door_from_room(room)
+    
+    if 'walls' in dna:
+        wall_num, wall_pos = DNA_Object.get_wall_from_dna(dna)
+    else:        
+        wall_num, wall_pos = DNA_Object.get_wall_from_room(room)    
+    
+    if 'windows' in dna:
+        window_num, window_pos = DNA_Object.get_window_info_from_dna(dna)
+    else:
+        window_center,window_num,window_pos = DNA_Object.get_window_info_from_room(room) 
+    
+    '''
+    if door_num > 0:
+        room_polygon = DNA_Geometry.generate_room_polygon(room)
+        door_polygon_list = DNA_Geometry.generate_door_geometry(door_num, door_pos)
+        
+        for w in range(len(door_polygon_list)):     
+            #print('hi',room_polygon.boundary.coords, len(room_polygon.boundary.coords), list(room_polygon.boundary.coords))
+            if DNA_Geometry.polygon_intersect_polygon_loosely(room_polygon, door_polygon_list[w]):
+                #print('hi',room_polygon.boundary.coords, len(room_polygon.boundary.coords), list(room_polygon.boundary.coords))
+                #print('[', w, ']', wall_pos['x'][w], wall_pos['y'][w])
+                Util.trans_by_vec(door_pos, trans_vec)
+                plt.plot(door_pos['x'][w], door_pos['y'][w], linewidth='1.5')
+                '''
+    
+    bed_num, bed_center, bed_size, bed_point= DNA_Object.get_obj_info_from_room(room, 318)
+    area_center, area = DNA_Object.get_room_area(room) 
 
-
-def get_door_pos(room):
-    door_pos = {}  #所有door的坐标
-    door_pos['x'] = []
-    door_pos['y'] = []
-    door_num = len(room['doors'])
-    center = []             
-    #print('room的door数量为：',door_num)
-    for j in range(door_num):
-        cur_door = room['doors'][j]
-        point_list = cur_door['points']
-        #print(door_pos)
-        for k in range(len(point_list)):
-            door_pos['x'].append(point_list[k]['x'])
-            door_pos['y'].append(point_list[k]['y'])
-    #print('room的door的坐标信息：', door_pos)
-    center.append(sum(door_pos['x']) * 1.0 / len(door_pos['x']))
-    center.append(sum(door_pos['y']) * 1.0 / len(door_pos['y']))
-    return center, door_num, door_pos
-
-def get_wall_pos(room):
-    wall_pos = {}
-    wall_pos['x'] = []
-    wall_pos['y'] = []
-    wall_pos['z'] = []
-    wall_num = len(room['walls'])
-    for j in range(wall_num):
-        cur_wall = room['walls'][j]
-        point_list = cur_wall['points']
-        for k in range(len(point_list)):
-            wall_pos['x'].append(point_list[k]['x'])
-            wall_pos['y'].append(point_list[k]['y'])
-            wall_pos['z'].append(point_list[k]['z'])
+    if bed_num > 0:
+        if ((bed_size[0] > 1000 and bed_size[1] > 1100) or (bed_size[0] > 1100 and bed_size[1] > 1000)):            
+            print('DNA',dna['solutionId'],'room', room_name, 'bed size maybe incorrect! bed_size is:',bed_size[0]*2,'x',bed_size[1]*2)
+            return
+        vec_room2bed['x'].append(bed_center[0]-area_center[0])
+        vec_room2bed['y'].append(bed_center[1]-area_center[1])
+        
+        Util.trans_by_vec(bed_point, trans_vec)
+        Util.trans_by_vec(area_center, trans_vec)
+        Util.trans_by_vec(bed_center, trans_vec)
+        plt.plot(bed_point['x'], bed_point['y'], linewidth='0.5')
+        #print(bed_center)
+        plt.plot(bed_center[0], bed_center[1], 'o')        
     
-    return wall_num, wall_pos
     
-def get_room_area(room):
-    area = {}
-    area['x'] = []
-    area['y'] = []
-    center = []
-    x = 0
-    y = 0
     
-    area_line_num = len(room['areas'])
-    for j in range(area_line_num):
-        cur_line = room['areas'][j]
-        area['x'].append(cur_line['x'])
-        area['y'].append(cur_line['y'])
-        if j == 0:
-            x = cur_line['x']
-            y = cur_line['y']
+    wardrobe_num, wardobe_center, wardrobe_size, wardrobe_point = DNA_Object.get_obj_info_from_room(room, 120)
+    if wardrobe_num > 0:
+        Util.trans_by_vec(wardrobe_point, trans_vec)
+        Util.trans_by_vec(wardobe_center, trans_vec)       
+        plt.plot(wardrobe_point['x'], wardrobe_point['y'], linewidth='0.5')
+        #print(bed_center)
+        plt.plot(wardobe_center[0], wardobe_center[1], 'o')
+        if (wardobe_center[0] > 600):
+            print(dna['solutionId'])
+      
     
-    center.append(sum(area['x']) * 1.0 / area_line_num)
-    center.append(sum(area['y']) * 1.0/ area_line_num)
     
-    #为画封闭图形补充
-    area['x'].append(x)
-    area['y'].append(y)
-    return center, area
-
-def get_room_by_usagename(dna, usage_name):
-    room_num = len(dna['roomList'])
-    for i in range(room_num):        
-        if dna['roomList'][i]['roomUsageName'] == usage_name:
-            return dna['roomList'][i]
-    return None
-def get_bed_info_from_room(room):
-    bed_pos = []   #x,y,z
-    bed_size = []  #width,long,height
-    point = {}
-    point['x'] = []
-    point['y'] = []
-    model_num = len(room['modelLists'])
-    for j in range(model_num):
-        if room['modelLists'][j]['categoryId'] == 318:
-            bed_pos.append(room['modelLists'][j]['points']['x'])
-            bed_pos.append(room['modelLists'][j]['points']['y'])
-            bed_pos.append(room['modelLists'][j]['points']['z'])
-            bed_size.append(room['modelLists'][j]['boxextension']['long'])
-            bed_size.append(room['modelLists'][j]['boxextension']['width'])
-            bed_size.append(room['modelLists'][j]['boxextension']['height'])
+    
+#------------------------------------------------------------------------------
+if __name__ == '__main__':    
+    
+    path = "E:/simulation_tools/simulation_py/dnafiles";
+    dna_file_list = DNA_File.find_json_files(path)
+    count = 0             
+    #dna_list = ['suiyueruge.txt', 'lanseduonaohe.txt', 'xizhaomisuli.txt', 'qinqishuhua.txt', 'bimozhiyan.txt']   
+    #dna_list = ['suiyueruge.txt', 'lanseduonaohe.txt', 'xizhaomisuli.txt']    
+    vec_room2bed = {}
+    vec_room2bed['x'] = []
+    vec_room2bed['y'] = []
+    
+    vec_door2bed = {}
+    vec_door2bed['x'] = []
+    vec_door2bed['y'] = []
+     
+    flag = [False, False, False, True]
+    for i in range(len(dna_file_list)): 
+       
+        dna = DNA_File.load_dna_by_file_name(dna_file_list[i])        
+        
+        if 'windows' in dna:
+            if flag[0] == False and DrawShape.draw_house_area(dna):
+                flag[0] = True
             
-            point['x'].append(bed_pos[0]-bed_size[0])
-            point['x'].append(bed_pos[0]-bed_size[0])
-            point['x'].append(bed_pos[0]+bed_size[0])
-            point['x'].append(bed_pos[0]+bed_size[0])
+            if flag[1] == False and DrawShape.draw_house_door(dna):
+                flag[1] = True
+                
+            if flag[2] == False and DrawShape.draw_house_window(dna):        
+                flag[2] = True
             
-            point['y'].append(bed_pos[1]-bed_size[1])
-            point['y'].append(bed_pos[1]+bed_size[1])            
-            point['y'].append(bed_pos[1]+bed_size[1])
-            point['y'].append(bed_pos[1]-bed_size[1])
-            
-            #为画封闭图形补充
-            point['x'].append(bed_pos[0]-bed_size[0])
-            point['y'].append(bed_pos[1]-bed_size[1])
-    return bed_pos, bed_size, point
-
-def get_window_info_from_room(room):
-    window = {}
-    window['x'] = []
-    window['y'] = []
-    window_num = len(room['windows'])
-    center=[]
-    for j in range(window_num):
-        cur_window = room['windows'][j]
-        point_list = cur_window['points']
-        for k in range(len(point_list)):
-            window['x'].append(point_list[k]['x'])  
-            window['y'].append(point_list[k]['y'])  
-    center.append(sum(window['x']) * 1.0/2)
-    center.append(sum(window['y']) * 1.0/2)
-    return center, window
-
-def show_room_list(dna):    
-    
-
-    room = get_room_by_usagename(dna, "主卧")
-    print(room['roomUsageName'])
-    #提取主卧的door信息
-    door_center, door_num, door_pos = get_door_pos(room)
-    print('主卧的door数量为：',door_num)
-    print('主卧的door的坐标信息：', door_pos)   
-    wall_num, walll_pos = get_wall_pos(room)    
-    #print('主卧的wall数量为：',wall_num)
-    #print('主卧的wall的坐标信息：', walll_pos) 
-    bed_pos, bed_size, bed_point= get_bed_info_from_room(room)
-    area_center, area = get_room_area(room)
-    window_center,window_pos = get_window_info_from_room(room)
-    plt.plot(door_pos['x'], door_pos['y'])
-    #plt.plot(walll_pos['x'], walll_pos['y'])
-    plt.plot(bed_point['x'], bed_point['y'])
-    plt.plot(area['x'], area['y'])
-    plt.plot(window_pos['x'], window_pos['y'])
-    
-    plt.plot(bed_pos[0], bed_pos[1], 'o')
-    plt.plot(window_center[0], window_center[1], 'o')
-    plt.plot(area_center[0], area_center[1], 'o')
-    plt.plot(door_center[0], door_center[1], 'o')
+            if flag[3] == False and DrawShape.draw_house_wall(dna):        
+                flag[3] = True
     
         
-dna_list = load_dna('suiyueruge.txt')
-dna_list1 = load_dna('lanseduonaohe.txt')
-show_room_list(dna_list)
-show_room_list(dna_list1)
+        #处理户型平移（同一户型的位置坐标不一样，由于户型只画了一次，家具信息每次都画，因此家具相对于户型的位置不准确，需做平移处理）
+        trans_vec1 = [0, 0]
+        trans_vec2 = [0, 0]
+        
+        if (i == 0):
+            base_room_center1, base_area1 = DNA_Object.get_room_area(DNA_Object.get_room_by_usagename(dna, '主卧'))
+            base_room_center2, base_area2 = DNA_Object.get_room_area(DNA_Object.get_room_by_usagename(dna, '次卧'))
+        else:
+            cur_room_center1, cur_area1 = DNA_Object.get_room_area(DNA_Object.get_room_by_usagename(dna, '主卧'))
+            cur_room_center2, cur_area2 = DNA_Object.get_room_area(DNA_Object.get_room_by_usagename(dna, '次卧'))
+            trans_vec1 = Util.get_trans_vector(base_room_center1, cur_room_center1)
+            trans_vec2 = Util.get_trans_vector(base_room_center2, cur_room_center2)
+            
+            
+        
+        #show_room_layout(dna, vec_room2bed, trans_vec1, '主卧')
+        #show_room_layout(dna, vec_room2bed, trans_vec2, '次卧')
+        count += 1
+        #print("-------------------------------------------------------------\n")
+    DrawShape.draw_relative_info(vec_room2bed)
+    print(count, 'files processed.\n')
+    print(vec_room2bed)
 

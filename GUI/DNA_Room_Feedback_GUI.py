@@ -24,9 +24,11 @@ import tkinter
 from tkinter import *
 from tkinter import filedialog
 from tkinter import messagebox as msgbox
+from tkinter import ttk
 import matplotlib
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from matplotlib.widgets import Cursor
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import requests
@@ -173,9 +175,10 @@ def onMotion(event):
         return
     else:  
         
-        circ._set_radius(v.get() * 500)
+        circ._set_radius(1 * 500)
         circ._set_xy([event.xdata, event.ydata])
         event.canvas.draw()
+        return
     
 def drawDNA(response_text):
     try:      
@@ -200,8 +203,10 @@ def drawDNA(response_text):
         if len(tmp.patches) > 0:
             tmp.patches[0].remove()            
     '''    
-    fig.clf()   
-    dna_plt=fig.add_subplot(111)       
+    #fig.clf()     
+    #dna_plt=fig.add_subplot(111)
+    
+    dna_plt.clear()      
         
     #print(shape_pos)
     
@@ -209,16 +214,17 @@ def drawDNA(response_text):
     dna_plt.plot(wall_pos['x'], wall_pos['y'], linewidth='0.5', color='b')   
     
     for i in range(window_num):
-        print(window_pos['x'][i])
+        #print(window_pos['x'][i])
         dna_plt.plot(window_pos['x'][i], window_pos['y'][i], alpha=0.7, color='g', linewidth='0.8', solid_capstyle='round', zorder=2)
     for i in range(door_num):           
         dna_plt.plot(door_pos['x'][i], door_pos['y'][i], alpha=0.7, color='r', linewidth='0.8', solid_capstyle='round', zorder=2)
    
     #plt.xlim((-15000, 20000))
     #plt.ylim((-15000, 20000))    
-    #dna_plt.add_patch(circ)
+    dna_plt.add_patch(circ)
     #print("hello2", fig.axes, fig.axes[0].patches)
     #dna_plt.remove(circ)    
+    #cursor = Cursor(dna_plt, useblit=True, color='r', linewidth=2)
     canvas.show() 
 
 
@@ -252,13 +258,14 @@ if __name__ == '__main__':
 
     #在Tk的GUI上放置一个画布，并用.grid()来调整布局
     fig = Figure(figsize=(5,4), dpi=100) 
+    dna_plt = fig.add_subplot(111)
     canvas = FigureCanvasTkAgg(fig, master=root)  
     canvas.show() 
     canvas.get_tk_widget().grid(row=1, column=2, rowspan=5, columnspan=3)  
     canvas.mpl_connect('button_release_event', onPress)
     canvas.mpl_connect('motion_notify_event', onMotion)    
-    circ = mpatches.RegularPolygon((0, 0), 30, 500, color = 'g', alpha=0.5)
-       
+    circ = mpatches.RegularPolygon((0, 0), 30, 10, color = 'g', alpha=0.5)
+
     #放置标签、文本框和按钮等部件，并设置文本框的默认值和按钮的事件函数     
     split_label = tkinter.Label(root)
     split_label.grid(row=7, column=0, columnspan=4)
@@ -296,18 +303,19 @@ if __name__ == '__main__':
     rotation_input.insert(0, '0')    
 
     page_idx_label = tkinter.Label(root, text='请求页编号：')
-    page_idx_label.grid(row=8, column=2)
+    page_idx_label.grid(row=8, column=2, sticky=E)
     page_idx_entry = tkinter.Entry(root)
-    page_idx_entry.grid(row=8, column=3)
+    page_idx_entry.grid(row=8, column=3, sticky=W)
     page_idx_entry.insert(0, '1')
     
     page_size_label = tkinter.Label(root, text='单页记录数量：')
-    page_size_label.grid(row=9, column=2)
+    page_size_label.grid(row=9, column=2, sticky=E)
     page_size_entry = tkinter.Entry(root)
-    page_size_entry.grid(row=9, column=3)
+    page_size_entry.grid(row=9, column=3, sticky=W)
     page_size_entry.insert(0, '20')
     
     '''
+    #下拉菜单https://blog.csdn.net/u010159842/article/details/53287325
     v = IntVar()
     v.set(1)
     b1 = tkinter.Radiobutton(root, text='直径1米', variable=v, value=1)
@@ -317,6 +325,15 @@ if __name__ == '__main__':
     b3 = tkinter.Radiobutton(root, text='直径3米', variable=v, value=3)
     b3.grid(row=10,column=4)            
     '''
+    
+    cursor_size_label = tkinter.Label(root, text='光标尺寸：')
+    cursor_size_label.grid(row=10, column=2, sticky=E)
+    d_radius = tkinter.StringVar()
+    d_radius_option = ttk.Combobox(root, width=12, textvariable=d_radius)
+    d_radius_option['values'] = ('直径1米', '直径2米', '直径3米')
+    d_radius_option.grid(row=10, column=3, sticky=W)
+    d_radius_option.current(0)
+    
     ip_label = tkinter.Label(root, text='服务端IP')
     ip_label.grid(row=12, column=2)
     host_ip = tkinter.Entry(root)

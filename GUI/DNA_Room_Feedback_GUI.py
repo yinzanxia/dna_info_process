@@ -86,6 +86,7 @@ def isRoomListSelected(room_lb):
 
 '''获取选中的Room的详细信息 ''' 
 def getRoomInfo():
+    global response_text
     if isRoomListSelected(room_lb) == False:
         msgbox.showerror("Error", "请批量导入Room列表并选中一个Room!")
     else:
@@ -109,8 +110,7 @@ def getRoomInfo():
             drawDNA(response_text)
             
             '''重置位置信息'''
-            fur_input.delete(0, END)
-            fur_input.insert(0, '-1')
+            fur_option.current(0)
             x_input.delete(0, END)
             x_input.insert(0, '0')
             y_input.delete(0, END)
@@ -124,31 +124,34 @@ def getRoomInfo():
     
 '''反馈家具位置按钮回调函数'''
 def feedBack():
-    if fur_input.get().isdigit() == False or fur_input.get() == '-1':
-        msgbox.showerror("Error", "请输入正确的家具类型ID!")
+    global response_text
+    if  fur_option.get() == '-1':
+        msgbox.showerror("Error", "请选择正确的家具类型ID!")
         return
     else:   
-        
-        '''
-        if isRoomListSelected(room_lb) == False:
-            msgbox.showerror("Error", "请选中当前要反馈的Room!")
-            return
-        msg = room_lb.get(room_lb.curselection()) + '反馈位置： [category'  + fur_input.get() +'] '
-        '''
         cur_id = RoomResponse.getIdFromShowText(cur_room_info_label["text"])       
         cur_id_num = int(cur_id[3:])
-        msg = cur_id + '反馈位置： [category'  + fur_input.get() +'] '
+        msg = cur_id + '反馈位置： [category'  + fur_option.get() +'] '
         postition = '(x:' + x_input.get() + ', y:' + y_input.get() + ', z:' + z_input.get() + ', rotation:' + rotation_input.get() + ')'
         msg = msg + postition + ' success!'
         #feedback_pos[fur_input.get()] = postition      
         room_fb_flag[cur_id_num] = True
+        #my_feedback = RoomResponse.deepCopyResponseText(response_text)
+        my_child = {}
+        my_child[fur_option.get()] = {}
+        my_child[fur_option.get()]['x'] = x_input.get()
+        my_child[fur_option.get()]['y'] = y_input.get()
+        my_child[fur_option.get()]['z'] = z_input.get()
+        my_child[fur_option.get()]['rotation'] = rotation_input.get()
+        RoomResponse.encodeFeedBack(response_text, my_child)
+        print(response_text)
         msgbox.showinfo("Info", msg)
         return
 
 def showFeedBackList():
     msg = ''
     for ikey, flag in room_fb_flag.items():
-        msg = msg + ikey
+        msg = msg + str(ikey)
         if flag == True:
             msg += ': Finished\n'
         else:
@@ -175,9 +178,14 @@ def onMotion(event):
         return
     else:  
         
-        circ._set_radius(1 * 500)
+        cur_str = d_radius_option.get()        
+        start_idx = cur_str.find("直径") + len("直径")
+        end_idx = cur_str.find("米")
+        number = float(cur_str[start_idx:end_idx])
+        circ._set_radius(number * 500)
         circ._set_xy([event.xdata, event.ydata])
         event.canvas.draw()
+        
         return
     
 def drawDNA(response_text):
@@ -186,7 +194,7 @@ def drawDNA(response_text):
         shape_point_num, shape_pos = RoomResponse.getWallShapeInfoFromRoom(response_text, "shapes")
         wall_num, wall_pos = RoomResponse.getWallShapeInfoFromRoom(response_text, "walls")
         window_num, window_pos = RoomResponse.getWindowInfoFromRoom(response_text)
-        print(window_num, window_pos)
+        #print(window_num, window_pos)
         
     except:
         msgbox.showerror("Error", "绘图失败!")
@@ -219,8 +227,8 @@ def drawDNA(response_text):
     for i in range(door_num):           
         dna_plt.plot(door_pos['x'][i], door_pos['y'][i], alpha=0.7, color='r', linewidth='0.8', solid_capstyle='round', zorder=2)
    
-    #plt.xlim((-15000, 20000))
-    #plt.ylim((-15000, 20000))    
+    #dna_plt.xlim((-5000, 5000))
+    #dna_plt.ylim((-5000, 5000))    
     dna_plt.add_patch(circ)
     #print("hello2", fig.axes, fig.axes[0].patches)
     #dna_plt.remove(circ)    
@@ -275,31 +283,37 @@ if __name__ == '__main__':
     
   
     fur_label = tkinter.Label(root, text='家具类型')
-    fur_label.grid(row=8, column=0)   
+    fur_label.grid(row=8, column=0) 
+    '''
     fur_input = tkinter.Entry(root)
     fur_input.grid(row=8, column=1)
-    fur_input.insert(0, '-1')
+    fur_input.insert(0, '-1')'''
+    fur_type = tkinter.StringVar()
+    fur_option = ttk.Combobox(root, width=12, textvariable=fur_type)
+    fur_option['values'] = ('-1', '318-床', '120-移门衣柜','115-榻榻米', '40-儿童床', '301-沙发','323-梳妆台', '310-餐桌' , '330-书桌/工作台','114-书桌','355-坐便器','342-浴室柜','350-卫生间淋浴')
+    fur_option.grid(row=8, column=1, sticky=W)
+    fur_option.current(0)
     
     x_label = tkinter.Label(root, text='x:')
     x_label.grid(row=9, column=0)
     x_input = tkinter.Entry(root)
-    x_input.grid(row=9, column=1)
+    x_input.grid(row=9, column=1, sticky=W)
     
     y_label = tkinter.Label(root, text='y:')
     y_label.grid(row=10, column=0)
     y_input = tkinter.Entry(root)
-    y_input.grid(row=10, column=1)
+    y_input.grid(row=10, column=1, sticky=W)
     
     z_label = tkinter.Label(root, text='z:')
     z_label.grid(row=11, column=0)
     z_input = tkinter.Entry(root)
-    z_input.grid(row=11, column=1)
+    z_input.grid(row=11, column=1, sticky=W)
     z_input.insert(0, '0')
     
     rotation_label = tkinter.Label(root, text='rotation:')
     rotation_label.grid(row=12, column=0)
     rotation_input = tkinter.Entry(root)
-    rotation_input.grid(row=12, column=1)
+    rotation_input.grid(row=12, column=1, sticky=W)
     rotation_input.insert(0, '0')    
 
     page_idx_label = tkinter.Label(root, text='请求页编号：')
@@ -330,15 +344,15 @@ if __name__ == '__main__':
     cursor_size_label.grid(row=10, column=2, sticky=E)
     d_radius = tkinter.StringVar()
     d_radius_option = ttk.Combobox(root, width=12, textvariable=d_radius)
-    d_radius_option['values'] = ('直径1米', '直径2米', '直径3米')
+    d_radius_option['values'] = ('直径0.5米', '直径1米', '直径1.5米', '直径2米', '直径2.5米','直径3米')
     d_radius_option.grid(row=10, column=3, sticky=W)
-    d_radius_option.current(0)
+    d_radius_option.current(1)
     
     ip_label = tkinter.Label(root, text='服务端IP')
-    ip_label.grid(row=12, column=2)
+    ip_label.grid(row=12, column=2, sticky=E)
     host_ip = tkinter.Entry(root)
-    host_ip.grid(row=12,column=3, sticky=E+W)
-    host_ip.insert(0, '172.16.2.129:8088')
+    host_ip.grid(row=12,column=3, sticky=W)
+    host_ip.insert(0, '192.168.23.43:8088')
     
     split_label = tkinter.Label(root)
     split_label.grid(row=13, column=0, columnspan=4)

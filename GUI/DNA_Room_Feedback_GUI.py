@@ -34,6 +34,7 @@ import matplotlib.pyplot as plt
 import requests
 import json
 import RoomResponse
+import PatternLearning
 
 
 '''请求批量Room列表'''    
@@ -194,7 +195,6 @@ def drawDNA(response_text):
         shape_point_num, shape_pos = RoomResponse.getWallShapeInfoFromRoom(response_text, "shapes")
         wall_num, wall_pos = RoomResponse.getWallShapeInfoFromRoom(response_text, "walls")
         window_num, window_pos = RoomResponse.getWindowInfoFromRoom(response_text)
-        #print(window_num, window_pos)
         
     except:
         msgbox.showerror("Error", "绘图失败!")
@@ -202,22 +202,9 @@ def drawDNA(response_text):
     
 
     #清空图像，以使得前后两次绘制的图像不会重叠
-    plt.style.use('ggplot')       
-    
-    '''
-    if len(fig.axes) > 0:
-        tmp = fig.axes[0]
-        #print('hello1',fig.axes, tmp.patches)
-        if len(tmp.patches) > 0:
-            tmp.patches[0].remove()            
-    '''    
-    #fig.clf()     
-    #dna_plt=fig.add_subplot(111)
-    
+    plt.style.use('ggplot')      
     dna_plt.clear()      
         
-    #print(shape_pos)
-    
     dna_plt.plot(shape_pos['x'], shape_pos['y'], linewidth='0.5', color='k')  
     dna_plt.plot(wall_pos['x'], wall_pos['y'], linewidth='0.5', color='b')   
     
@@ -234,6 +221,15 @@ def drawDNA(response_text):
     #dna_plt.remove(circ)    
     #cursor = Cursor(dna_plt, useblit=True, color='r', linewidth=2)
     canvas.show() 
+    if RoomResponse.isBedroom(response_text):
+        x_range, y_range = RoomResponse.getShapeRange(shape_point_num, shape_pos)
+        pattern, door_size_ratio, window_size_ratio = PatternLearning.generateRoomParttern(door_num, door_pos, window_num, window_pos, x_range, y_range)
+        free_wall, align = PatternLearning.predictObjPostitionByPattern(pattern, door_size_ratio, window_size_ratio)
+        print(pattern, free_wall, align)
+        if len(free_wall) > 0:
+            objPositon = PatternLearning.generatePointByPrediction(shape_point_num, shape_pos, wall_num, wall_pos,free_wall[0], align)
+            if 318 in objPositon:
+                dna_plt.plot(objPositon[318]['x'], objPositon[318]['y'], linewidth='3.0', color='r')
 
 
 if __name__ == '__main__':   
@@ -352,7 +348,7 @@ if __name__ == '__main__':
     ip_label.grid(row=12, column=2, sticky=E)
     host_ip = tkinter.Entry(root)
     host_ip.grid(row=12,column=3, sticky=W)
-    host_ip.insert(0, '192.168.23.43:8088')
+    host_ip.insert(0, '192.168.21.103:8088')
     
     split_label = tkinter.Label(root)
     split_label.grid(row=13, column=0, columnspan=4)

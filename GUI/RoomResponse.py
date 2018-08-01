@@ -36,6 +36,15 @@ def getRoomDetailShowInfo(resp_text):
     else:
         return ""
     
+def isBedroom(resp_text):
+    if type(resp_text) == dict:
+        if "data" in resp_text and type(resp_text["data"]) is dict:
+            cur_data = resp_text["data"]
+            room_name = cur_data["roomName"]
+            if room_name == "主卧" or room_name == "次卧" or room_name == "第三房" or room_name == "第四房":
+                return True      
+    return False
+    
 def getIdFromShowText(show_txt):
     res = show_txt.split("|")
     print(res)
@@ -150,6 +159,28 @@ def getWallShapeInfoFromRoom(resp_text, obj_type):
     
     return point_num, shape_pos
 
+def getShapeRange(point_num, shape_pos):
+    x_min = 1000000
+    x_max = -1000000
+    y_min = 1000000
+    y_max = -1000000
+    
+    for i in range(point_num):
+        x = shape_pos['x'][i]
+        y = shape_pos['y'][i]
+        if x < x_min:
+            x_min = x
+        if x > x_max:
+            x_max = x
+        if y > y_max:
+            y_max = y
+        if y < y_min:
+            y_min = y
+    
+    x_range = x_max - x_min
+    y_range = y_max - y_min
+    
+    return x_range, y_range
 
 def getWallInfoFromRoom(resp_text):
     wall_pos = {}
@@ -180,70 +211,7 @@ def getWallInfoFromRoom(resp_text):
 
     return wall_num, wall_pos
 
-def getQuard(x, y):
-    if x > 0 and y > 0:
-        return 1
-    elif x > 0 and y == 0:
-        return 2
-    elif x > 0 and y < 0:
-        return 3
-    elif x == 0 and y < 0:
-        return 4
-    elif x < 0 and y < 0:
-        return 5
-    elif x < 0 and y == 0:
-        return 6
-    elif x < 0 and y > 0:
-        return 7    
-    elif x == 0 and y > 0:
-        return 8
-    else:
-        return 0
-        
-def generateRoomParttern(obj_num, obj_pos, obj_type):
-    #obj_type: 1-door, 2-window
-    #平行于x轴模式为*0, 平行与y轴模式为*1
-    pattern = {}    
-    
-    for i in range(obj_num):
-        x_min = 1000000
-        x_max = -1000000
-        y_min = 1000000
-        y_max = -1000000
-        
-        obj_x = obj_pos['x'][i]
-        obj_y = obj_pos['y'][i]
-        for j in range(len(obj_x)):
-            if obj_x[j] > x_max:
-                x_max = obj_x[j]
-            if obj_x[j] < x_min:
-                x_min = obj_x[j]
-                
-            if obj_y[j] > y_max:
-                y_max = obj_y[j]
-                
-            if obj_y[j] < y_min:
-                y_min = obj_y[j]
-        
-        center_x = (x_max + x_min) / 2.0
-        center_y = (y_max + y_min) / 2.0
-        
-        grid = getQuard(center_x, center_y)
-        delta_x = x_max - x_min
-        delta_y = y_max - y_min
-        if delta_x > delta_y:
-            #平行于x轴
-            if obj_type == 1:
-                pattern[grid] = '10'
-            else:
-                pattern[grid] = '20'
-        else:
-            #平行于y轴
-            if obj_type == 1:
-                pattern[grid] = '11'
-            else:
-                pattern[grid] = '21'
-        
+
         
 
 def deepCopyResponseText(resp_text):

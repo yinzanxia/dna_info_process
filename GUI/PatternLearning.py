@@ -219,9 +219,15 @@ def predictObjPostitionByPattern(pattern, door_size_ratio, window_size_ratio):
 '''根据贴靠的墙编号和在墙上的相对偏移预测床中心点的位置'''
 def generatePointByPrediction(shape_point_num, shape_pos, wall_point_num, wall_pos, free_wall, align):
     objPosition = {}
-    objPosition[318] = {}
-    objPosition[318]['x'] = []
-    objPosition[318]['y'] = []
+    bed = 318
+    wardrobe = 120
+    objPosition[bed] = {}
+    objPosition[bed]['x'] = []
+    objPosition[bed]['y'] = []
+    
+    objPosition[wardrobe] = {}
+    objPosition[wardrobe]['x'] = []
+    objPosition[wardrobe]['y'] = []
     
     x_min, x_max, y_min, y_max = getRectLimit(shape_point_num, shape_pos['x'], shape_pos['y'])    
     
@@ -241,57 +247,57 @@ def generatePointByPrediction(shape_point_num, shape_pos, wall_point_num, wall_p
         w_y_min = min(y_list)
     
     if free_wall == 1:
-        objPosition[318]['x'].append(w_x_max - 1000)
-        objPosition[318]['x'].append(w_x_max - 1000)
+        objPosition[bed]['x'].append(w_x_max - 1000)
+        objPosition[bed]['x'].append(w_x_max - 1000)
         mid_y = (w_y_max + w_y_min) / 2.0
-        objPosition[318]['y'].append((mid_y))
+        objPosition[bed]['y'].append((mid_y))
         if align == -1: 
-            objPosition[318]['y'].append(w_y_max*1.0 /3)
+            objPosition[bed]['y'].append(w_y_max*1.0 /3)
         elif align == 1: 
-            objPosition[318]['y'].append(w_y_min*1.0 /3)
+            objPosition[bed]['y'].append(w_y_min*1.0 /3)
         else:
-            objPosition[318]['y'].append(mid_y)
+            objPosition[bed]['y'].append(mid_y)
     
     if free_wall == 3:
-        objPosition[318]['x'].append(w_x_min + 1000)
-        objPosition[318]['x'].append(w_x_min + 1000)
+        objPosition[bed]['x'].append(w_x_min + 1000)
+        objPosition[bed]['x'].append(w_x_min + 1000)
         mid_y = (w_y_max + w_y_min) / 2.0
-        objPosition[318]['y'].append((mid_y))
+        objPosition[bed]['y'].append((mid_y))
         
         if align == -1:
-            objPosition[318]['y'].append(w_y_min*1.0/3)
+            objPosition[bed]['y'].append(w_y_min*1.0/3)
         elif align == 1:
-            objPosition[318]['y'].append(w_y_max*1.0/3)
+            objPosition[bed]['y'].append(w_y_max*1.0/3)
         else:
-            objPosition[318]['y'].append(mid_y)
+            objPosition[bed]['y'].append(mid_y)
             
     
     if free_wall == 2:
-        objPosition[318]['y'].append(w_y_min + 1000)
-        objPosition[318]['y'].append(w_y_min + 1000)
+        objPosition[bed]['y'].append(w_y_min + 1000)
+        objPosition[bed]['y'].append(w_y_min + 1000)
         mid_x = (w_x_max + w_x_min) / 2.0
         objPosition[318]['x'].append(mid_x)
         
         if align == -1:
-            objPosition[318]['x'].append(w_y_max*1.0/3)
+            objPosition[bed]['x'].append(w_y_max*1.0/3)
         elif align == 1:
-            objPosition[318]['x'].append(w_x_min*1.0/3)
+            objPosition[bed]['x'].append(w_x_min*1.0/3)
         else:
-            objPosition[318]['x'].append(mid_x)
+            objPosition[bed]['x'].append(mid_x)
             
     
     if free_wall == 4:
-        objPosition[318]['y'].append(w_y_max - 1000)
-        objPosition[318]['y'].append(w_y_min - 1000)
+        objPosition[bed]['y'].append(w_y_max - 1000)
+        objPosition[bed]['y'].append(w_y_max - 1000)
         mid_x = (w_x_max + w_x_min) / 2.0
-        objPosition[318]['x'].append(mid_x)
+        objPosition[bed]['x'].append(mid_x)
         
         if align == -1:
-            objPosition[318]['x'].append(w_x_min*1.0/3)
+            objPosition[bed]['x'].append(w_x_min*1.0/3)
         elif align == 1:
-            objPosition[318]['x'].append(w_x_max*1.0/3)
+            objPosition[bed]['x'].append(w_x_max*1.0/3)
         else:
-            objPosition[318]['x'].append(mid_x)
+            objPosition[bed]['x'].append(mid_x)
             
     
     return objPosition

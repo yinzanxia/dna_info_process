@@ -68,7 +68,7 @@ def requestRoomList():
         next_page_idx = int(page_idx_entry.get()) + 1
         page_idx_entry.delete(0, tkinter.END)
         page_idx_entry.insert(0, str(next_page_idx))
-        msgbox.showinfo("Info", "Room请求成功!")
+        #msgbox.showinfo("Info", "Room请求成功!")
     except:
         err_msg = "请求Room列表失败！"
         msgbox.showerror("Error", err_msg)
@@ -110,6 +110,8 @@ def getRoomInfo():
             cur_room_info_label.configure(text=show_text)
             drawDNA(response_text)
             
+            print(response_text)
+            
             '''重置位置信息'''
             fur_option.current(0)
             x_input.delete(0, END)
@@ -121,6 +123,82 @@ def getRoomInfo():
         except:
             err_msg = "获取Room详细信息失败！"
             msgbox.showerror("Error", err_msg)
+
+def isObjCategoryFeedbacked(obj_name):
+    global feedback_list
+    for i in range(len(feedback_list)):
+        cur_feedback = feedback_list[i]
+        if cur_feedback["name"] == obj_name:
+            return i
+    return -1
+    
+def packFeedback():
+    global feedback_list
+    
+    obj_name = fur_option.get()
+    obj_name_list = obj_name.split('-')
+    obj_name = obj_name_list[1]
+    
+    search_idx = isObjCategoryFeedbacked(obj_name)
+    if search_idx != -1:
+        aijia_feedback = feedback_list[search_idx]
+    else:
+        aijia_feedback = {}
+    aijia_feedback["name"] = obj_name          #物品名称
+    #物品旋转信息
+    aijia_feedback["rotate"] = {}
+    aijia_feedback["rotate"]["xAxis"] = 0.0
+    aijia_feedback["rotate"]["yAxis"] = 0.0
+    aijia_feedback["rotate"]["zAxis"] = 0 - float(rotation_input.get())
+    
+    #物品底部中心点位置
+    aijia_feedback["location"] = {}
+    aijia_feedback["location"]["x"] = float(x_input.get())
+    aijia_feedback["location"]["y"] = float(y_input.get())
+    aijia_feedback["location"]["z"] = float(z_input.get())
+    aijia_feedback["locationInHouse"] = {}
+    aijia_feedback["locationInHouse"]["x"] = 0.0
+    aijia_feedback["locationInHouse"]["y"] = 0.0
+    aijia_feedback["locationInHouse"]["z"] = 0.0
+    
+    #物品缩放信息
+    '''
+    aijia_feedback["scale"] = {}
+    aijia_feedback["scale"]["x"] = 1.0
+    aijia_feedback["scale"]["y"] = 1.0
+    aijia_feedback["scale"]["z"] = 1.0
+    '''
+    aijia_feedback["axisScale"] = {}
+    aijia_feedback["axisScale"]["x"] = 1.0
+    aijia_feedback["axisScale"]["y"] = 1.0
+    aijia_feedback["axisScale"]["z"] = 1.0
+    
+    #物品变换前的长宽高
+    aijia_feedback["size"] = {}
+    aijia_feedback["size"]["dx"] = dx_scale.get()
+    aijia_feedback["size"]["dy"] = dy_scale.get()
+    aijia_feedback["size"]["dz"] = 0.0
+    
+    aijia_feedback["skuId"] = 1
+    aijia_feedback["modelCode"] = 0
+    aijia_feedback["categoryId"] = int(obj_name_list[0])
+    
+    #修正移动
+    aijia_feedback["fixedMove"] = {}
+    aijia_feedback["fixedMove"]["x"] = 0.0
+    aijia_feedback["fixedMove"]["y"] = 0.0
+    aijia_feedback["fixedMove"]["z"] = 0.0
+    
+    #修正旋转
+    aijia_feedback["fixedRotate"] = {}
+    aijia_feedback["fixedRotate"]["xAxis"] = 0.0
+    aijia_feedback["fixedRotate"]["yAxis"] = 0.0
+    aijia_feedback["fixedRotate"]["zAxis"] = 0.0
+    
+    aijia_feedback["mark"] = 0
+    
+    if search_idx == -1:
+        feedback_list.append(aijia_feedback)
         
     
 '''反馈家具位置按钮回调函数'''
@@ -137,16 +215,25 @@ def feedBack():
         msg = msg + postition + ' success!'
         #feedback_pos[fur_input.get()] = postition      
         room_fb_flag[cur_id_num] = True
-        #my_feedback = RoomResponse.deepCopyResponseText(response_text)
-        my_child = {}
-        my_child[fur_option.get()] = {}
-        my_child[fur_option.get()]['x'] = x_input.get()
-        my_child[fur_option.get()]['y'] = y_input.get()
-        my_child[fur_option.get()]['z'] = z_input.get()
-        my_child[fur_option.get()]['rotation'] = rotation_input.get()
-        RoomResponse.encodeFeedBack(response_text, my_child)
-        print(response_text)
+       
         msgbox.showinfo("Info", msg)
+        
+        packFeedback()
+        
+        print(feedback_list)
+        
+        
+        my_url = 'http://'+ host_ip.get() + '/ai/room/feedback/update/' + RoomResponse.getRidFromResp(response_text)    #e099ce62b9ef4d5f8b08027c14be4157'        
+        
+        headers={'content-type':'application/json'}
+        my_data = json.dumps(feedback_list)
+        #print(my_data)
+        post_r = requests.post(my_url,headers=headers, data=my_data)
+        print("post_r=",post_r)
+        #print("post_r.text=", post_r.text)
+        
+        
+        
         return
 
 def showFeedBackList():
@@ -171,6 +258,7 @@ def onPress(event):
     
     dna_plt=fig.add_subplot(111)
     dna_plt.plot(event.xdata, event.ydata, '*')
+    
     canvas.show()
   
 
@@ -179,14 +267,21 @@ def onMotion(event):
         return
     else:  
         
+        '''
         cur_str = d_radius_option.get()        
         start_idx = cur_str.find("直径") + len("直径")
         end_idx = cur_str.find("米")
         number = float(cur_str[start_idx:end_idx])
         circ._set_radius(number * 500)
         circ._set_xy([event.xdata, event.ydata])
-        event.canvas.draw()
-        
+        '''
+        dx = dx_scale.get() / 2.0
+        dy = dy_scale.get() / 2.0
+        x = [event.xdata - dx, event.xdata + dx, event.xdata + dx, event.xdata - dx]
+        y = [event.ydata - dy, event.ydata - dy, event.ydata + dy, event.ydata + dy]
+
+        polygon.set_xy(list(zip(x,y)))        
+        event.canvas.draw()        
         return
     
 def drawDNA(response_text):
@@ -216,18 +311,42 @@ def drawDNA(response_text):
    
     #dna_plt.xlim((-5000, 5000))
     #dna_plt.ylim((-5000, 5000))    
-    dna_plt.add_patch(circ)
+    dna_plt.add_patch(polygon)
+    #dna_plt.add_patch(rotate_arrow)
     #print("hello2", fig.axes, fig.axes[0].patches)
     #dna_plt.remove(circ)    
     #cursor = Cursor(dna_plt, useblit=True, color='r', linewidth=2)
     canvas.show() 
+    
+    
     if RoomResponse.isBedroom(response_text):
         x_range, y_range = RoomResponse.getShapeRange(shape_point_num, shape_pos)
         pattern, door_size_ratio, window_size_ratio = PatternLearning.generateRoomParttern(door_num, door_pos, window_num, window_pos, x_range, y_range)
         free_wall, align = PatternLearning.predictObjPostitionByPattern(pattern, door_size_ratio, window_size_ratio)
         print(pattern, free_wall, align)
+        pos_exp = RoomResponse.getExpList(response_text)
+        pos = RoomResponse.recoverPositionPoint(pos_exp, x_range, y_range)
+        print(pos)
+        
+        
+        '''不同类型家具已有反馈位置的点图'''
+        obj_color=['b','r','y','g']
+        obj_marker=['+', '.', ',']
+        idx = 0
+        for i_key, i_value in pos.items():
+            cur_color = obj_color[idx % len(obj_color)]
+            cur_marker = obj_marker[idx % len(obj_marker)]
+            idx += 1
+            for i in range(len(i_value)):
+                x = i_value[i]['x']
+                y = i_value[i]['y']
+                dna_plt.plot(x, y, marker=cur_marker, color=cur_color)            
+            
+        
+        
         if len(free_wall) > 0:
             objPositon = PatternLearning.generatePointByPrediction(shape_point_num, shape_pos, wall_num, wall_pos,free_wall[0], align)
+            print(objPositon)
             if 318 in objPositon:
                 dna_plt.plot(objPositon[318]['x'], objPositon[318]['y'], linewidth='3.0', color='r')
 
@@ -268,7 +387,9 @@ if __name__ == '__main__':
     canvas.get_tk_widget().grid(row=1, column=2, rowspan=5, columnspan=3)  
     canvas.mpl_connect('button_release_event', onPress)
     canvas.mpl_connect('motion_notify_event', onMotion)    
-    circ = mpatches.RegularPolygon((0, 0), 30, 10, color = 'g', alpha=0.5)
+    #circ = mpatches.RegularPolygon((0, 0), 30, 10, color = 'g', alpha=0.5)
+    polygon = mpatches.Polygon([[150, 150], [350, 400], [200, 600]], facecolor='g', alpha=0.5)
+    #rotate_arrow = mpatches.Arrow(100, 110, 11, 12, width=200, color='r')
 
     #放置标签、文本框和按钮等部件，并设置文本框的默认值和按钮的事件函数     
     split_label = tkinter.Label(root)
@@ -278,8 +399,8 @@ if __name__ == '__main__':
     split_label.configure(text=split_line)
     
   
-    fur_label = tkinter.Label(root, text='家具类型')
-    fur_label.grid(row=8, column=0) 
+    fur_label = tkinter.Label(root, text='家具类型：')
+    fur_label.grid(row=8, column=0, sticky=E) 
     '''
     fur_input = tkinter.Entry(root)
     fur_input.grid(row=8, column=1)
@@ -290,24 +411,24 @@ if __name__ == '__main__':
     fur_option.grid(row=8, column=1, sticky=W)
     fur_option.current(0)
     
-    x_label = tkinter.Label(root, text='x:')
-    x_label.grid(row=9, column=0)
+    x_label = tkinter.Label(root, text='x：')
+    x_label.grid(row=9, column=0, sticky=E)
     x_input = tkinter.Entry(root)
     x_input.grid(row=9, column=1, sticky=W)
     
-    y_label = tkinter.Label(root, text='y:')
-    y_label.grid(row=10, column=0)
+    y_label = tkinter.Label(root, text='y：')
+    y_label.grid(row=10, column=0, sticky=E)
     y_input = tkinter.Entry(root)
     y_input.grid(row=10, column=1, sticky=W)
     
-    z_label = tkinter.Label(root, text='z:')
-    z_label.grid(row=11, column=0)
+    z_label = tkinter.Label(root, text='z：')
+    z_label.grid(row=11, column=0, sticky=E)
     z_input = tkinter.Entry(root)
     z_input.grid(row=11, column=1, sticky=W)
     z_input.insert(0, '0')
     
-    rotation_label = tkinter.Label(root, text='rotation:')
-    rotation_label.grid(row=12, column=0)
+    rotation_label = tkinter.Label(root, text='rotation：')
+    rotation_label.grid(row=12, column=0, sticky=E)
     rotation_input = tkinter.Entry(root)
     rotation_input.grid(row=12, column=1, sticky=W)
     rotation_input.insert(0, '0')    
@@ -336,22 +457,34 @@ if __name__ == '__main__':
     b3.grid(row=10,column=4)            
     '''
     
-    cursor_size_label = tkinter.Label(root, text='光标尺寸：')
-    cursor_size_label.grid(row=10, column=2, sticky=E)
+    obj_dx_label = tkinter.Label(root, text='反馈家具尺寸Dx：')
+    obj_dx_label.grid(row=13, column=0, sticky=E)
+    obj_dy_label = tkinter.Label(root, text='反馈家具尺寸Dy：')
+    obj_dy_label.grid(row=14, column=0, sticky=E)
+    '''
     d_radius = tkinter.StringVar()
     d_radius_option = ttk.Combobox(root, width=12, textvariable=d_radius)
     d_radius_option['values'] = ('直径0.5米', '直径1米', '直径1.5米', '直径2米', '直径2.5米','直径3米')
     d_radius_option.grid(row=10, column=3, sticky=W)
     d_radius_option.current(1)
+    '''
     
-    ip_label = tkinter.Label(root, text='服务端IP')
-    ip_label.grid(row=12, column=2, sticky=E)
+    dx_scale = Scale(root, from_ = 0, to = 5000, orient=HORIZONTAL, resolution=5)
+    dx_scale.grid(row=13, column=1, sticky=W)
+    dx_scale.set(1000)
+    
+    dy_scale = Scale(root, from_ = 0, to = 5000, orient=HORIZONTAL, resolution=5)
+    dy_scale.grid(row=14, column=1, sticky=W)    
+    dy_scale.set(1000)
+    
+    ip_label = tkinter.Label(root, text='服务端IP：')
+    ip_label.grid(row=10, column=2, sticky=E)
     host_ip = tkinter.Entry(root)
-    host_ip.grid(row=12,column=3, sticky=W)
-    host_ip.insert(0, '192.168.21.103:8088')
+    host_ip.grid(row=10,column=3, sticky=W)
+    host_ip.insert(0, '192.168.23.59:8088')
     
     split_label = tkinter.Label(root)
-    split_label.grid(row=13, column=0, columnspan=4)
+    split_label.grid(row=15, column=0, columnspan=4)
     split_label.configure(text=split_line)
     '''
     feedback_pos = {}
@@ -361,8 +494,9 @@ if __name__ == '__main__':
     '''
     
     
-    room_fb_flag={}   #记录某个room是否反馈过
-    response_text = {}
+    room_fb_flag={}     #记录某个room是否反馈过
+    response_text = {}  #记录当前room的详细信息
+    feedback_list = []
         
     
 

@@ -141,9 +141,7 @@ def onMotion(event):
         return
     else:  
         circ._set_radius(v.get() * 500)
-        circ._set_xy([event.xdata, event.ydata])
-        #circ.set_center((event.xdata, event.ydata))
-        #circ.set([event.xdata, event.ydata])
+        circ._set_xy([event.xdata, event.ydata])        
         event.canvas.draw()
     
 def drawDNA():

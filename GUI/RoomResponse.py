@@ -31,15 +31,88 @@ def getRoomDetailShowInfo(resp_text):
     if type(resp_text) == dict:
         if "data" in resp_text and type(resp_text["data"]) is dict:
             cur_data = resp_text["data"]
-            room_text = "|id:%d|roomId:%d|solutionId:%d|roomName:%s|markFeature:%s" % (cur_data["id"], cur_data["roomId"],cur_data["solutionId"], cur_data["roomName"], cur_data["markFeature"])
+            if "room" in cur_data:
+                cur_data = cur_data["room"]
+            room_text = "|id:%d|roomId:%d|solutionId:%d|roomName:%s|markFeature:%s|rid:%s|" % (cur_data["id"], cur_data["roomId"],cur_data["solutionId"], cur_data["roomName"], cur_data["markFeature"], cur_data["rid"])
             return room_text
     else:
         return ""
+   
+    
+'''获取指定room的rid'''
+def getRidFromResp(resp_text):
+    if type(resp_text) == dict:
+        if "data" in resp_text and type(resp_text["data"]) is dict:
+            cur_data = resp_text["data"]
+            if "room" in cur_data:
+                cur_data = cur_data["room"]
+            return cur_data["rid"]
+    else:
+        return ""
+
+
+
+'''解析表达式'''
+def decodeExp(exp_str):
+    
+    exp_list = exp_str.split("|")
+    if len(exp_list) > 0:
+        location_str = exp_list[0][2:]
+        location_str = location_str.split(',')
+        location = [float(item) for item in location_str]
+        return location
+    else:
+        return []
+        
+
+
+'''从响应信息中解析该room下的主家具位置列表'''
+def getExpList(detail_room_response_text):
+    pos = {}
+    if type(detail_room_response_text) == dict:
+        if "data" in detail_room_response_text and type(detail_room_response_text["data"]) is dict:
+            cur_data = detail_room_response_text["data"]
+            if "relationship" in cur_data:
+                cur_data = cur_data["relationship"]
+                if type(cur_data) is list:
+                    for i in range(len(cur_data)):
+                        cur_obj = cur_data[i]
+                        if cur_obj["categoryId"] not in pos:
+                            pos[cur_obj["categoryId"]] = []
+                            
+                        location = decodeExp(cur_obj["expression"])
+                        if len(location) > 0:
+                            tmp = {}
+                            tmp['x'] = location[0]
+                            tmp['y'] = location[1]
+                            tmp['z'] = location[2]
+                            pos[cur_obj["categoryId"]].append(tmp)
+                        
+    
+    return pos;
+
+def recoverPositionPoint(pos, x_range, y_range):
+    recover_position = {}
+    
+    for i_key, i_value in pos.items():
+        recover_position[i_key] = []
+        for i in range(len(i_value)):
+            cur_pos = i_value[i]
+            tmp = {}
+            tmp['x'] = cur_pos['x'] * x_range / 2.0
+            tmp['y'] = cur_pos['y'] * y_range / 2.0
+            tmp['z'] = cur_pos['z']
+            recover_position[i_key].append(tmp)
+            
+    return recover_position
+        
     
 def isBedroom(resp_text):
     if type(resp_text) == dict:
         if "data" in resp_text and type(resp_text["data"]) is dict:
             cur_data = resp_text["data"]
+            if "room" in cur_data:
+                cur_data = cur_data["room"]
             room_name = cur_data["roomName"]
             if room_name == "主卧" or room_name == "次卧" or room_name == "第三房" or room_name == "第四房":
                 return True      
@@ -47,7 +120,7 @@ def isBedroom(resp_text):
     
 def getIdFromShowText(show_txt):
     res = show_txt.split("|")
-    print(res)
+    #print(res)
     return res[1]
     
 def getDoorInfoFromRoom(resp_text):
@@ -57,7 +130,9 @@ def getDoorInfoFromRoom(resp_text):
     door_num = 0
     if type(resp_text) == dict:
         if "data" in resp_text and type(resp_text["data"]) is dict:
-            cur_data = resp_text["data"]            
+            cur_data = resp_text["data"]      
+            if "room" in cur_data:
+                cur_data = cur_data["room"]
             if "doors" in cur_data:                
                 door_list = json.loads(cur_data["doors"]) 
                 for d in range(len(door_list)):                    
@@ -87,16 +162,18 @@ def getWindowInfoFromRoom(resp_text):
     window_str = "windows"
     if type(resp_text) == dict:
         if "data" in resp_text and type(resp_text["data"]) is dict:
-            cur_data = resp_text["data"]            
+            cur_data = resp_text["data"]
+            if "room" in cur_data:
+                cur_data = cur_data["room"]            
             if window_str in cur_data:                
-                door_list = json.loads(cur_data[window_str])                 
-                for d in range(len(door_list)):                    
-                    door = door_list[d]
+                window_list = json.loads(cur_data[window_str])                 
+                for d in range(len(window_list)):                    
+                    window = window_list[d]
                     tmpx = []
                     tmpy = []
                     door_num += 1
-                    if "points" in door:
-                        point_list = door["points"]                        
+                    if "points" in window:
+                        point_list = window["points"]                        
                         for i in range(len(point_list)):
                             cur_point = point_list[i]
                             if (cur_point['z'] < 3000):
@@ -149,6 +226,8 @@ def getWallShapeInfoFromRoom(resp_text, obj_type):
     if type(resp_text) is dict:
         if "data" in resp_text and type(resp_text["data"]) is dict:
             cur_data = resp_text["data"]
+            if "room" in cur_data:
+                cur_data = cur_data["room"]
             if obj_type in cur_data:
                 shape_list = json.loads(cur_data[obj_type])                
                 for i in range(len(shape_list)):
@@ -191,6 +270,8 @@ def getWallInfoFromRoom(resp_text):
     if type(resp_text) is dict:
         if "data" in resp_text and type(resp_text["data"]) is dict:
             cur_data = resp_text["data"]
+            if "room" in cur_data:
+                cur_data = cur_data["room"]
             if "walls" in cur_data:
                 shape_list = json.loads(cur_data["walls"])     
                 new_list = removeDuplicateItem(shape_list)   

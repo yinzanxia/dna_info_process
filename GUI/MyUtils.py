@@ -34,16 +34,16 @@ def getListLimit(num, x_list, y_list):
 '''门或窗的中心点坐标，方向 0: x轴平行， 方向1：y轴平行'''
 def getSideOrder(x, y, direction):
     if direction == 0:
-        if y > 0:
+        if y > 500:
             return 4
-        elif y < 0:
+        elif y < -500:
             return 2
         else:
             return 0  
     elif direction == 1:
-        if x > 0:
+        if x > 500:
             return 1
-        elif x < 0:
+        elif x < -500:
             return 3
         else:
             return 0  

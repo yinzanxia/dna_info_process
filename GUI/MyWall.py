@@ -67,4 +67,7 @@ class LinearWall:
     def getMinY(self):
         return min(self.startPoint.getY(), self.endPoint.getY())
     
+    def showDetail(self):
+        print("Start(", self.getStartX(), self.getStartY(),"), End(", self.getEndX(), self.getEndY(),")")
+    
     

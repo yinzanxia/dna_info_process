@@ -92,6 +92,8 @@ class RoomMeta:
         if self.shape_dy <= 0:
             self.shape_dy = 1
             
+        print('RoomShape init: x_min,x_max, y_min,y_max ', x_min, x_max, y_min, y_max)
+            
     def initWallInfo(self):
         x_min = 1000000
         x_max = -1000000
@@ -124,6 +126,8 @@ class RoomMeta:
         
         if self.wall_dy <= 0:
             self.wall_dy = 1
+            
+        print('RoomWall init: x_min,x_max, y_min,y_max ', x_min, x_max, y_min, y_max)
         
         
     def getShapeDx(self):
@@ -223,6 +227,8 @@ class RoomMeta:
         
         self.getDoorWindowPattern(self.door_num, self.door_pos, 1)
         self.getDoorWindowPattern(self.window_num, self.window_pos,  2)
+        
+        print('RoomPattern init:', self.pattern)
         
         
         
@@ -519,108 +525,227 @@ class RoomMeta:
         return door_range
     
     
-
+    
+    '''判断墙是否是边界上的墙，方向和长度, 不考虑到边界的距离，因为边墙有时是分隔墙'''
+    def isBoundWall(self, wall) :        
+        if wall.getDirection() == 0 and self.wall_dx -  wall.getLength() < 500:
+            return True
+        elif wall.getDirection() == 1 and self.wall_dy -  wall.getLength() < 500:
+            return True  
         
+        return False
         
+    def isYWallFarFromBottom(self, cur_wall):
+        if cur_wall.getStartY() - self.wall_ymin > 200 and  cur_wall.getEndY() -self.wall_ymin  >200:
+            return True
+        else:
+            return False
+            
+            
+    def isYWallFarFromTop(self, cur_wall):
+        if self.wall_ymax - cur_wall.getStartY() > 200 and self.wall_ymax - cur_wall.getEndY() > 200:
+            return True
+        else:
+            return False
+    
+    def searchInPositiveYWalls(self, pos_y_walls, start_align, start_y):
+        dist = 100000   
+        wall_flag = False
+        door_flag = False
+        virtual_len = 1500
+        len1 = virtual_len
+        len2 = virtual_len
+        for i in range(len(pos_y_walls)):
+            cur_wall = pos_y_walls[i]  
+            cur_wall.showDetail()
+            wall_len = cur_wall.getLength()
+            
+            if start_align == -1 and self.isYWallFarFromTop(cur_wall):
+                continue
+            elif start_align == 1 and self.isYWallFarFromBottom(cur_wall):
+                continue            
+            
+            '''找距离中心最近的非边界墙的长度'''
+            if wall_len > 500 and self.isBoundWall(cur_wall) == False:
+                if cur_wall.getStartX() < dist:
+                    dist = cur_wall.getStartX()                        
+                    wall_flag = True
+                    len1 = wall_len
+                    print("cur_virtural_len=", len1, cur_wall.getStartX(), cur_wall.getStartY(), cur_wall.getEndX(), cur_wall.getEndY())   
+                    
+            door_info = self.analyzeDoorInWall(cur_wall)
+            if len(door_info['y']) > 0:
+                door_flag = True
+                if start_align == -1:
+                    len2 = start_y - MyUtils.getYmaxOfDoorInWall(door_info)
+                else:
+                    len2 = MyUtils.getYminOfDoorInWall(door_info) - start_y                    
+                print('cur_virtual_len(door)=', len2, cur_wall.getStartX(), cur_wall.getStartY(), cur_wall.getEndX(), cur_wall.getEndY())
+                
+            
+        if wall_flag and door_flag:
+            virtual_len = min(len1, len2)                
+        elif wall_flag and door_flag == False:
+            virtual_len = len1
+        elif wall_flag == False and door_flag:
+            virtual_len = len2
+            
+        return virtual_len
+                
+   
+    def searchInNegativeYWalls(self, neg_y_walls, start_align, start_y):
+        dist = 100000
+        wall_flag = False
+        door_flag = False
+        virtual_len = 1500
+        len1 = len2 = virtual_len
+        for i in range(len(neg_y_walls)):
+            cur_wall = neg_y_walls[i]
+            cur_wall.showDetail()
+            wall_len = cur_wall.getLength()  
+            
+            if start_align == -1 and self.isYWallFarFromBottom(cur_wall):
+                continue
+            if start_align == 1 and self.isYWallFarFromTop(cur_wall):
+                continue
+                       
+            if  wall_len > 500 and self.isBoundWall(cur_wall) == False:
+                if 0 - cur_wall.getStartX() < dist:
+                    dist = 0 - cur_wall.getStartX()
+                    wall_flag = True
+                    len1 = wall_len                            
+                    print("cur_virtural_len=", len1, cur_wall.getStartX(), cur_wall.getStartY(), cur_wall.getEndX(), cur_wall.getEndY())
+            
+            
+            door_info = self.analyzeDoorInWall(cur_wall)
+            if len(door_info['y']) > 0:
+                door_flag = True
+                if start_align == -1:
+                    len2 = MyUtils.getYminOfDoorInWall(door_info) - start_y
+                else:
+                    len2 = start_y - MyUtils.getYmaxOfDoorInWall(door_info)
+                    
+                print('cur_virtual_len(door)=', len2 , cur_wall.getStartX(), cur_wall.getStartY(), cur_wall.getEndX(), cur_wall.getEndY())
+                
+        if wall_flag and door_flag:
+            virtual_len = min(len1, len2)                
+        elif wall_flag and door_flag == False:
+            virtual_len = len1
+        elif wall_flag == False and door_flag:
+            virtual_len = len2
+            
+        return virtual_len
+    
+    
+    def isXWallFarFromLeft(self, cur_wall):
+        if cur_wall.getStartX() - self.wall_xmin > 200 and cur_wall.getEndX()- self.wall_xmin >200:
+            return True
+        else:
+            return False
+            
+            
+    def isXWallFarFromRight(self, cur_wall):
+        if self.wall_xmax - cur_wall.getStartX() > 200 and self.wall_xmax - cur_wall.getEndX() > 200:
+            return True
+        else:
+            return False
+    
+    def searchInPositiveXWalls(self, pos_x_walls, start_align, start_x):
+        dist = 100000
+        wall_flag = False
+        door_flag = False
+        virtual_len = 1500
+        len1 = len2 = virtual_len
+        for i in range(len(pos_x_walls)):
+            cur_wall = pos_x_walls[i]
+            wall_len = cur_wall.getLength()     
+            
+            if start_align == 1 and self.isXWallFarFromRight(cur_wall):
+                continue
+            elif start_align == -1 and self.isXWallFarFromLeft(cur_wall):
+                continue
+            
+            if wall_len > 500 and self.isBoundWall(cur_wall) == False:
+                if cur_wall.getStartY() < dist:
+                    dist = cur_wall.getStartY()
+                    len1 = wall_len
+                    wall_flag = True
+                    print("cur_virtural_len=", len1, cur_wall.getStartX(), cur_wall.getStartY(), cur_wall.getEndX(), cur_wall.getEndY())
+                    
+            door_info = self.analyzeDoorInWall(cur_wall)
+            if len(door_info['x']) > 0:
+                door_flag = True
+                if start_align == -1:
+                    len2 = MyUtils.getXminOfDoorInWall(door_info) - start_x
+                else:
+                    len2 = start_x - MyUtils.getXmaxOfDoorInWall(door_info)
+                    
+                print('cur_virtual_len(door)=', len2 , cur_wall.getStartX(), cur_wall.getStartY(), cur_wall.getEndX(), cur_wall.getEndY())  
+                
+        if wall_flag and door_flag:
+            virtual_len = min(len1, len2)                
+        elif wall_flag and door_flag == False:
+            virtual_len = len1
+        elif wall_flag == False and door_flag:
+            virtual_len = len2
+        
+        return virtual_len
+        
+    def searchInNegativeXWalls(self, neg_x_walls, start_align, start_x):
+        dist = 100000
+        wall_flag = False
+        door_flag = False
+        virtual_len = 1500
+        len1 = len2 = virtual_len
+        for i in range(len(neg_x_walls)):
+            cur_wall = neg_x_walls[i]
+            wall_len = cur_wall.getLength()  
+            
+            if start_align == 1 and self.isXWallFarFromLeft(cur_wall):
+                continue
+            elif start_align == -1 and self.isXWallFarFromRight(cur_wall):
+                continue
+            
+            if wall_len > 500 and self.isBoundWall(cur_wall) == False:
+                if 0 - cur_wall.getStartY() < dist:
+                    dist = 0 - cur_wall.getStartY()
+                    len1 = wall_len 
+                    wall_flag = True
+                    print("cur_virtural_len=", len1, cur_wall.getStartX(), cur_wall.getStartY(), cur_wall.getEndX(), cur_wall.getEndY())
+                    
+            door_info = self.analyzeDoorInWall(cur_wall)
+            if len(door_info['x']) > 0:
+                door_flag = True
+                if start_align == -1:
+                    len2 = start_x - MyUtils.getXmaxOfDoorInWall(door_info)
+                else:
+                    len2 = MyUtils.getXminOfDoorInWall(door_info) - start_x
+                    
+                print('cur_virtual_len(door)=', len2 , cur_wall.getStartX(), cur_wall.getStartY(), cur_wall.getEndX(), cur_wall.getEndY())
+                
+        if wall_flag and door_flag:
+            virtual_len = min(len1, len2)                
+        elif wall_flag and door_flag == False:
+            virtual_len = len1
+        elif wall_flag == False and door_flag:
+            virtual_len = len2
+            
+        return virtual_len
+                     
     '''沿衣柜背靠的墙搜索衣柜的长度，最长不超过1500, 同方向既有wall长度限制，又有door边框限制时，以更靠近的为准'''
-    def searchVirtualCorner1(self, wall_index, start_align, start_x, start_y):
-        x_min = self.wall_xmin
-        x_max = self.wall_xmax
-        y_min = self.wall_ymin
-        y_max = self.wall_ymax
+    def searchVirtualCorner1(self, wall_index, start_align, start_x, start_y):        
         
         pos_x_walls, neg_x_walls, pos_y_walls, neg_y_walls = self.groupWalls()
         virtual_len = 1500
         
         if wall_index == 1:
-            dist = 100000
-            for i in range(len(pos_y_walls)):
-                cur_wall = pos_y_walls[i]  
-                wall_len = cur_wall.getLength()
-                       
-                if wall_len > 500 and wall_len < y_max - y_min - 500:
-                    if cur_wall.getStartX() < dist:
-                        dist = cur_wall.getStartX()
-                        virtual_len = wall_len 
-                        print("cur_virtural_len=", virtual_len, cur_wall)   
-                        
-                door_info = self.analyzeDoorInWall(cur_wall)
-                if len(door_info['y']) > 0:
-                    if start_align == -1:
-                        virtual_len = start_y - MyUtils.getYmaxOfDoorInWall(door_info)
-                    else:
-                        virtual_len = MyUtils.getYminOfDoorInWall(door_info) - start_y
-                    print('cur_virtual_len(door)=', virtual_len, cur_wall)
-                
-        
-        if wall_index == 3:
-            dist = 100000
-            for i in range(len(neg_y_walls)):
-                cur_wall = neg_y_walls[i]
-                wall_len = cur_wall.getLength()           
-                           
-                if  wall_len > 500 and wall_len < y_max - y_min - 500:
-                    if 0 - cur_wall.getStartX() < dist:
-                        dist = 0 - cur_wall.getStartX()
-                        virtual_len = wall_len                            
-                        print("cur_virtural_len=", virtual_len, cur_wall)
-                
-                if 0 - cur_wall.getStartX() < dist:
-                    door_info = self.analyzeDoorInWall(cur_wall)
-                    if len(door_info['y']) > 0:
-                        if start_align == -1:
-                            virtual_len = MyUtils.getYminOfDoorInWall(door_info) - start_y
-                        else:
-                            virtual_len = start_y - MyUtils.getYmaxOfDoorInWall(door_info)
-                            
-                        print('cur_virtual_len(door)=', virtual_len, cur_wall)
-                        
-        if wall_index == 2:
-            dist = 100000
-            for i in range(len(neg_x_walls)):
-                cur_wall = neg_x_walls[i]
-                wall_len = cur_wall.getLength()  
-                
-                if wall_len > 500 and wall_len < x_max - x_min - 500:
-                    if 0 - cur_wall.getStartY() < dist:
-                        dist = 0 - cur_wall.getStartY()
-                        virtual_len = wall_len  
-                        print("cur_virtural_len=", virtual_len, cur_wall)
-                        
-                door_info = self.analyzeDoorInWall(cur_wall)
-                if len(door_info['x']) > 0:
-                    if start_align == -1:
-                        virtual_len = start_x - MyUtils.getXmaxOfDoorInWall(door_info)
-                    else:
-                        virtual_len = MyUtils.getXminOfDoorInWall(door_info) - start_x
-                        
-                    print('cur_virtual_len(door)=', virtual_len, cur_wall)
-                        
-        if wall_index == 4:
-            dist = 100000
-            for i in range(len(pos_x_walls)):
-                cur_wall = pos_x_walls[i]
-                wall_len = cur_wall.getLength()     
-                
-                if start_align == 1 and x_max - cur_wall.getStartX() > 200 and x_max - cur_wall.getEndX() > 200:
-                    continue
-                elif start_align == -1 and cur_wall.getStartX() - x_min > 200 and x_min - cur_wall.getEndX() >200:
-                    continue
-                
-                if wall_len > 500 and wall_len < x_max - x_min - 500:
-                    if cur_wall.getStartY() < dist:
-                        dist = cur_wall.getStartY()
-                        virtual_len = wall_len
-                        print("cur_virtural_len=", virtual_len, cur_wall)
-                        
-                door_info = self.analyzeDoorInWall(cur_wall)
-                if len(door_info['x']) > 0:
-                    if start_align == -1:
-                        virtual_len = MyUtils.getXminOfDoorInWall(door_info) - start_x
-                    else:
-                        virtual_len = start_x - MyUtils.getXmaxOfDoorInWall(door_info)
-                        
-                    print('cur_virtual_len(door)=', virtual_len, cur_wall)                      
+            virtual_len = self.searchInPositiveYWalls(pos_y_walls, start_align, start_y)  
+        elif wall_index == 3:
+            virtual_len = self.searchInNegativeYWalls(neg_y_walls, start_align, start_y)                        
+        elif wall_index == 2:
+            virtual_len = self.searchInNegativeXWalls(neg_x_walls, start_align, start_x)                        
+        elif wall_index == 4:
+            virtual_len = self.searchInPositiveXWalls(pos_x_walls, start_align, start_x)                               
                 
                 
         return virtual_len

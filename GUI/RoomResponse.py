@@ -238,28 +238,6 @@ def getWallShapeInfoFromRoom(resp_text, obj_type):
     
     return point_num, shape_pos
 
-def getShapeRange(point_num, shape_pos):
-    x_min = 1000000
-    x_max = -1000000
-    y_min = 1000000
-    y_max = -1000000
-    
-    for i in range(point_num):
-        x = shape_pos['x'][i]
-        y = shape_pos['y'][i]
-        if x < x_min:
-            x_min = x
-        if x > x_max:
-            x_max = x
-        if y > y_max:
-            y_max = y
-        if y < y_min:
-            y_min = y
-    
-    x_range = x_max - x_min
-    y_range = y_max - y_min
-    
-    return x_range, y_range
 
 def getWallInfoFromRoom(resp_text):
     wall_pos = {}

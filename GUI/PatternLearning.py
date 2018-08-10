@@ -5,142 +5,11 @@ Created on Mon Jul 30 21:57:10 2018
 @author: mayn
 """
 
-'''门或窗的中心点坐标，方向 0: x轴平行， 方向1：y轴平行'''
-def getSideOrder(x, y, direction):
-    if direction == 0:
-        if y > 0:
-            return 4
-        elif y < 0:
-            return 2
-        else:
-            return 0  
-    elif direction == 1:
-        if x > 0:
-            return 1
-        elif x < 0:
-            return 3
-        else:
-            return 0    
+from shapely.geometry import Polygon
+from shapely.geometry import LineString
+import MyPoint
+import MyWall
 
-
-'''获取x列表和y列表的最大和最小值'''
-def getRectLimit(num, x_list, y_list):
-    x_min = 1000000
-    x_max = -1000000
-    y_min = 1000000
-    y_max = -1000000
-    
-    for i in range(num):
-        if x_list[i] > x_max:
-            x_max = x_list[i]
-        
-        if x_list[i] < x_min:
-            x_min = x_list[i]
-            
-        if y_list[i] > y_max:
-            y_max = y_list[i]
-            
-        if y_list[i] < y_min:
-            y_min = y_list[i]
-    
-    return x_min, x_max, y_min, y_max        
-
-       
-'''生成门窗模式'''
-def getDoorWindowPattern(obj_num, obj_pos, pattern, obj_size_ratio, x_range, y_range, obj_type):
-    
-    for i in range(obj_num):       
-        
-        obj_x = obj_pos['x'][i]
-        obj_y = obj_pos['y'][i]        
-                
-        x_min, x_max, y_min, y_max = getRectLimit(len(obj_x), obj_x, obj_y)
-        
-        center_x = (x_max + x_min) / 2.0
-        center_y = (y_max + y_min) / 2.0
-        
-        delta_x = x_max - x_min
-        delta_y = y_max - y_min
-        if delta_x > delta_y:
-            #平行于x轴, side = 2  or side= 4
-            side = getSideOrder(center_x, center_y, 0)
-            obj_size_ratio[side - 1] = delta_x * 1.0 / x_range
-            if delta_x > x_range * 2 / 3:
-                pattern[side][0] = obj_type
-                pattern[side][1] = obj_type
-                pattern[side][2] = obj_type
-            else:
-                if side == 2:
-                    if center_x > 10:
-                        pattern[side][0] = obj_type
-                    elif center_x < -10:
-                        pattern[side][2] = obj_type
-                    else:
-                        pattern[side][1] = obj_type
-                else: #side = 4
-                    if center_x < -10:
-                        pattern[side][0] = obj_type
-                    elif center_x > 10:
-                        pattern[side][2] = obj_type
-                    else:
-                        pattern[side][1] = obj_type
-        else:
-            #平行于y轴
-            side = getSideOrder(center_x, center_y, 1)
-            obj_size_ratio[side - 1] = delta_y * 1.0 / y_range
-            if delta_y > y_range * 2 / 3:
-                pattern[side][0] = obj_type
-                pattern[side][1] = obj_type
-                pattern[side][2] = obj_type
-            else:
-                if side == 1:
-                    if center_y > 10:
-                        pattern[side][0] = obj_type
-                    elif center_y < -10:
-                        pattern[side][2] = obj_type
-                    else:
-                        pattern[side][1] = obj_type
-                else:
-                    if center_y < -10:
-                        pattern[side][0] = obj_type
-                    elif center_y > 10:
-                        pattern[side][2] = obj_type
-                    else:
-                        pattern[side][1] = obj_type
-                    
-
-'''生成门和窗模式'''                   
-def generateRoomParttern(door_num, door_pos, window_num, window_pos, x_range, y_range):
-    #obj_type: 1-door, 2-window
-    #平行于x轴模式为*0, 平行与y轴模式为*1
-    pattern = {} 
-    pattern[0] = [0, 0, 0]
-    pattern[1] = [0, 0, 0]
-    pattern[2] = [0, 0, 0]
-    pattern[3] = [0, 0, 0]
-    pattern[4] = [0, 0, 0]
-    
-    door_size_ratio = [0, 0, 0, 0]
-    window_size_ratio = [0, 0, 0, 0]
-    
-    getDoorWindowPattern(door_num, door_pos, pattern, door_size_ratio,  x_range, y_range, 1)
-    getDoorWindowPattern(window_num, window_pos, pattern, window_size_ratio, x_range, y_range, 2)
-    
-    return pattern, door_size_ratio, window_size_ratio
-     
-
-def getPreWall(cur_wall):
-    pre_wall = cur_wall - 1
-    if pre_wall == 0:
-        pre_wall = 4
-    
-    return pre_wall
-
-def getPostWall(cur_wall):
-    post_wall = cur_wall + 1
-    if post_wall == 5:
-        post_wall = 1
-    return post_wall
 
 def isWallFree(pattern, wall_idx):
     if wall_idx >= len(pattern):
@@ -148,206 +17,308 @@ def isWallFree(pattern, wall_idx):
     
     return sum(pattern[wall_idx]) == 0
 
-def getFreeWall(pattern):
-    free_wall = []
-    
-    '''根据pattern选择没有门和窗的墙， TODO：后续考虑窗尺寸小于一定阈值时的处理，拐角飘窗'''    
-    for ikey, ivalue in pattern.items():
-        if ikey != 0:
-            value_sum = sum(ivalue)
-            if value_sum == 0:
-                free_wall.append(ikey)
-    return free_wall
 
-def filterFreeWallByExperience(pattern, free_wall):
-    '''根据经验对无门无窗的墙进行过滤，得到床头贴靠的墙'''   
-    if len(free_wall) > 1:
-        for ikey, ivalue in pattern.items():
-            if ikey != 0:
-                value_sum = sum(ivalue)
-                if value_sum == 1:
-                    if ivalue[0] == 1:
-                        pre_wall = getPreWall(ikey)                        
-                        if pre_wall in free_wall:
-                            free_wall.remove(pre_wall)
-                    elif ivalue[2] == 1:
-                        post_wall = getPostWall(ikey)                        
-                        if post_wall in free_wall:
-                            free_wall.remove(post_wall)
+def growToXMin(center_x, center_y, x_min, wall_point_num, wall_pos):
+    tmp_x = x_min
+    wall_len = 0
+    for i in range(wall_point_num-1):
+        cur_x = wall_pos['x'][i]
+        cur_y = wall_pos['y'][i]
+        next_x = wall_pos['x'][i+1]
+        next_y = wall_pos['y'][i+1]
+        
+        if abs(cur_x - next_x) < 50  and max(cur_x, next_x) > x_min and max(cur_x, next_x) < center_x and center_y > min(cur_y, next_y) and center_y < max(cur_y, next_y):  #平行与Y轴且在点与边界之间
+            if tmp_x < max(cur_x, next_x):
+                tmp_x = max(cur_x, next_x)
+                wall_len = abs(cur_y - next_y)
+                
+    return tmp_x, wall_len
                     
-                    if len(free_wall) == 1:
-                        break
-
-'''根据门窗位置预测床所贴靠的墙以及在墙上的相对位置'''
-def predictObjPostitionByPattern(pattern, door_size_ratio, window_size_ratio):  
-    
-    free_wall = getFreeWall(pattern)    
-    filterFreeWallByExperience(pattern, free_wall)
-    align = 0
-    
-    '''目前得到一种方案：床只有一面贴靠的墙； 根据经验选择床在该墙上贴靠的位置， -1表示靠近前驱，1表示靠近后驱，0表示床中心点在贴靠位于该墙的中央'''
-    if len(free_wall) == 1:
-        free_wall_index = free_wall[0]
-        pre_wall = getPreWall(free_wall_index)
-        post_wall = getPostWall(free_wall_index)
+def growToXMax(center_x, center_y, x_max, wall_point_num, wall_pos):
+    tmp_x = x_max
+    wall_len = 0
+    for i in range(wall_point_num-1):
+        cur_x = wall_pos['x'][i]
+        cur_y = wall_pos['y'][i]
+        next_x = wall_pos['x'][i+1]
+        next_y = wall_pos['y'][i+1]
         
-        #选择更贴靠窗的一侧，若两侧都贴靠窗，选择贴靠窗尺寸更大的
-        if 2 in pattern[pre_wall] and 2 not in pattern[post_wall]:
-            align = -1
-        elif 2 not in pattern[pre_wall] and 2 in pattern[post_wall]:
-            align = 1
-        elif 2 in pattern[pre_wall] and 2 in pattern[post_wall]:
-            if window_size_ratio[pre_wall - 1] > window_size_ratio[post_wall - 1]:
-                align = -1
-            else:
-                align = 1
-        else:
-            #没有窗，可能是阳台门，比较大的门，当作窗处理
-            if door_size_ratio[pre_wall - 1] > door_size_ratio[post_wall - 1]:
-                align = -1
-            else:
-                align= 1
-                    
-            
-    else:
-        print('free_wall more than 1:', free_wall)
-    return free_wall, align
+        if abs(cur_x - next_x) < 50  and min(cur_x, next_x) < x_max and min(cur_x, next_x) > center_x and center_y > min(cur_y, next_y) and center_y < max(cur_y, next_y):  #平行与Y轴且在点与边界之间
+            if tmp_x > min(cur_x, next_x):
+                tmp_x = min(cur_x, next_x)
+                wall_len = abs(cur_y - next_y)
+                
+    return tmp_x, wall_len
 
+def growToYMin(center_x, center_y, y_min, wall_point_num, wall_pos):
+    tmp_y = y_min
+    wall_len = 0
+    for i in range(wall_point_num-1):
+        cur_x = wall_pos['x'][i]
+        cur_y = wall_pos['y'][i]
+        next_x = wall_pos['x'][i+1]
+        next_y = wall_pos['y'][i+1]
+        if abs(cur_y - next_y) < 50  and max(cur_y, next_y) > y_min and max(cur_y, next_y) < center_y and center_x > min(cur_x, next_x) and center_x < max(cur_x, next_x):  #平行与X轴且在点与边界之间
+            if tmp_y < max(cur_y, next_y):
+                tmp_y = max(cur_y, next_y)
+                wall_len = abs(cur_x, next_x)
+    return tmp_y, wall_len
 
-
-
-'''根据贴靠的墙编号和在墙上的相对偏移预测床中心点的位置'''
-def generatePointByPrediction(shape_point_num, shape_pos, wall_point_num, wall_pos, free_wall, align):
-    objPosition = {}
-    bed = 318
-    wardrobe = 120
-    objPosition[bed] = {}
-    objPosition[bed]['x'] = []
-    objPosition[bed]['y'] = []
-    
-    objPosition[wardrobe] = {}
-    objPosition[wardrobe]['x'] = []
-    objPosition[wardrobe]['y'] = []
-    
-    x_min, x_max, y_min, y_max = getRectLimit(shape_point_num, shape_pos['x'], shape_pos['y'])    
-    
-    x_list, y_list = getWallRangeByWallIdex(free_wall, wall_point_num, wall_pos)
-    
-    w_x_min = x_min
-    w_x_max = x_max
-    w_y_min = y_min
-    w_y_max = y_max
-    
-    if len(x_list) > 0:    
-        w_x_max = max(x_list)
-        w_x_min = min(x_list)
-    
-    if len(y_list) > 0:
-        w_y_max = max(y_list)
-        w_y_min = min(y_list)
-    
-    if free_wall == 1:
-        objPosition[bed]['x'].append(w_x_max - 1000)
-        objPosition[bed]['x'].append(w_x_max - 1000)
-        mid_y = (w_y_max + w_y_min) / 2.0
-        objPosition[bed]['y'].append((mid_y))
-        if align == -1: 
-            objPosition[bed]['y'].append(w_y_max*1.0 /3)
-        elif align == 1: 
-            objPosition[bed]['y'].append(w_y_min*1.0 /3)
-        else:
-            objPosition[bed]['y'].append(mid_y)
-    
-    if free_wall == 3:
-        objPosition[bed]['x'].append(w_x_min + 1000)
-        objPosition[bed]['x'].append(w_x_min + 1000)
-        mid_y = (w_y_max + w_y_min) / 2.0
-        objPosition[bed]['y'].append((mid_y))
+def growToYMax(center_x, center_y, y_max, wall_point_num, wall_pos):
+    tmp_y = y_max
+    wall = [0, 0, 0, 0]
+    for i in range(wall_point_num-1):
+        cur_x = wall_pos['x'][i]
+        cur_y = wall_pos['y'][i]
+        next_x = wall_pos['x'][i+1]
+        next_y = wall_pos['y'][i+1]
         
-        if align == -1:
-            objPosition[bed]['y'].append(w_y_min*1.0/3)
-        elif align == 1:
-            objPosition[bed]['y'].append(w_y_max*1.0/3)
-        else:
-            objPosition[bed]['y'].append(mid_y)
-            
-    
-    if free_wall == 2:
-        objPosition[bed]['y'].append(w_y_min + 1000)
-        objPosition[bed]['y'].append(w_y_min + 1000)
-        mid_x = (w_x_max + w_x_min) / 2.0
-        objPosition[318]['x'].append(mid_x)
-        
-        if align == -1:
-            objPosition[bed]['x'].append(w_y_max*1.0/3)
-        elif align == 1:
-            objPosition[bed]['x'].append(w_x_min*1.0/3)
-        else:
-            objPosition[bed]['x'].append(mid_x)
-            
-    
-    if free_wall == 4:
-        objPosition[bed]['y'].append(w_y_max - 1000)
-        objPosition[bed]['y'].append(w_y_max - 1000)
-        mid_x = (w_x_max + w_x_min) / 2.0
-        objPosition[bed]['x'].append(mid_x)
-        
-        if align == -1:
-            objPosition[bed]['x'].append(w_x_min*1.0/3)
-        elif align == 1:
-            objPosition[bed]['x'].append(w_x_max*1.0/3)
-        else:
-            objPosition[bed]['x'].append(mid_x)
-            
-    
-    return objPosition
+        if abs(cur_y - next_y) < 50  and min(cur_y, next_y) < y_max and min(cur_y, next_y) > center_y and center_x > min(cur_x, next_x) and center_x < max(cur_x, next_x):  #平行与Y轴且在点与边界之间
+            if tmp_y > min(cur_y, next_y):
+                tmp_y = min(cur_y, next_y)
+                wall[0] = cur_x
+                wall[1] = cur_y
+                wall[2] = next_x
+                wall[3] = next_y
+                
+    return tmp_y, wall
 
-
-def getWallRangeByWallIdex(free_wall_idx, wall_point_num, wall_pos):
+def rectGrow(center_x, center_y, wall_point_num, wall_pos):
     x_min, x_max, y_min, y_max = getRectLimit(wall_point_num, wall_pos['x'], wall_pos['y'])
-    x_list = []
-    y_list = []
-    if free_wall_idx == 1:
-        #最右侧的wall
-        for i in range(wall_point_num):
-            x = wall_pos['x'][i]
-            y = wall_pos['y'][i]
-            if abs(x - x_max) < 100:
-                y_list.append(y)
-                
-    if free_wall_idx == 2:
-        #最下方的wall
-        for i in range(wall_point_num):
-            x = wall_pos['x'][i]
-            y = wall_pos['y'][i]
-            if abs(y - y_min) < 100:
-                x_list.append(x)
-                
-    if free_wall_idx == 3:
-        #最左侧的wall
-        for i in range(wall_point_num):
-            x = wall_pos['x'][i]
-            y = wall_pos['y'][i]
-            if abs(x - x_min) < 100:
-                y_list.append(y)
-                
-    if free_wall_idx == 4:
-        #最下方的wall
-        for i in range(wall_point_num):
-            x = wall_pos['x'][i]
-            y = wall_pos['y'][i]
-            if abs(y - y_max) < 100:
-                x_list.append(x)
-                
+    left = center_x    
+    right = center_x
+    top = center_y
+    bottom = center_y
     
-    return x_list, y_list
     
+    '''优先向某个方向生长应该检查距离最近的墙的距离而非边界墙的距离'''
+    if center_x - x_min < x_max - center_x:
+        #优先向x_min方向生长 
+        left, wall_len = growToXMin(center_x, center_y, x_min, wall_point_num, wall_pos)        
+    else:
+        #优先向x_max方向生长        
+        right, wall_len = growToXMax(center_x, center_y, x_max, wall_point_num, wall_pos)
+    
+    if center_y - y_min < y_max - center_y:
+        #优先向y_min方向生长        
+        bottom, wall_len1 = growToYMin(center_x, center_y, y_min, wall_point_num, wall_pos)
+    else:
+        #优先向y_max方向生长        
+        top, wall = growToYMax(center_x, center_y, y_max, wall_point_num, wall_pos)
         
-       
+    '''以上完成两个方向上距离墙的搜索'''                
+    
+    return left, right, top, bottom
+
+def rectGrowWithBackWall(back_wall, align, center_x, center_y, wall_point_num, wall_pos, door_num, door_pos):
+    x_min, x_max, y_min, y_max = getRectLimit(wall_point_num, wall_pos['x'], wall_pos['y'])
+    left = center_x    
+    right = center_x
+    top = center_y
+    bottom = center_y
+    
+    if back_wall == 1:
+        #优先向x_max方向生长 
+        right, y_wall_len = growToXMax(center_x, center_y, x_max, wall_point_num, wall_pos)
+        #然后向x_min方向生长，优先检查障碍wall，其次检查门边界和平行于Y且与back_wall相距一面墙的墙的X坐标，不超过660
+        if align == -1:
+            top, x_wall_len = growToYMax(center_x, center_y, y_max, wall_point_num, wall_pos)    
+        else:  #align=1
+            bottom, x_wall_len = growToYMin(center_x, center_y, y_min, wall_point_num, wall_pos)
+        
+    elif back_wall == 2:
+        #优先向y_min方向生长   
+        bottom = growToYMin(center_x, center_y, y_min, wall_point_num, wall_pos)
+    elif back_wall == 3:
+        #优先向x_min方向生长 
+        left = growToXMin(center_x, center_y, x_min, wall_point_num, wall_pos)
+    elif back_wall == 4:
+        #优先向y_max方向生长        
+        top, x_wall = growToYMax(center_x, center_y, y_max, wall_point_num, wall_pos)   
+        
+        if align == -1:
+            left, y_wall = growToXMin(center_x, center_y, x_min, wall_point_num, wall_pos)
+        else:  #align=1
+            right, y_wall = growToXMax(center_x, center_y, x_max, wall_point_num, wall_pos)
+            
+                
+ 
+               
+    
+    return left, right, top, bottom
+        
+def searchVirtualCorner(wall_index, start_align, wall_point_num, wall_pos):
+    x_min, x_max, y_min, y_max = getRectLimit(wall_point_num, wall_pos['x'], wall_pos['y'])
+    
+    for i in range(wall_point_num -1):
+        cur_x = wall_pos['x'][i]
+        cur_y = wall_pos['y'][i]
+        next_x = wall_pos['x'][i+1]
+        next_y = wall_pos['y'][i+1]
+        if wall_index == 1:
+            if cur_x > 0 and abs(next_y - cur_y) > 500 and abs(next_y - cur_y) < y_max - y_min - 500:
+                return abs(next_y - cur_y)
+        
+        if wall_index == 2:
+            if cur_y < 0 and abs(next_x - cur_x) > 500 and abs(next_x - cur_x) < x_max - x_min - 500:
+                return abs(next_x - cur_x)
+            
+        if wall_index == 3:
+            if cur_x < 0 and abs(next_y - cur_y) > 500 and abs(next_y - cur_y) < y_max - y_min - 500:
+                return abs(next_y - cur_y)
+            
+        if wall_index == 4:
+            if cur_y > 0 and abs(next_x - cur_x) > 500 and abs(next_x - cur_x) < x_max - x_min - 500:
+                return abs(next_x - cur_x)
+            
+    return 1500
+
+
+
+def isBoundWall(cur_x, cur_y, next_x, next_y, x_min, x_max, y_min, y_max) :
+    if abs(cur_y - next_y) < 30 and abs(cur_y - y_max) < 100:
+        return True
+    if abs(cur_y - next_y) < 30 and abs(cur_y - y_min) < 100:
+        return True
+    if abs(cur_x - next_x) < 30 and abs(cur_x - x_max) < 100:
+        return True
+    if abs(cur_x - next_x) < 30 and abs(cur_x - x_min) < 100:
+        return True
+    
+    return False
+    
+def hasCrossWall(side, wall_point_num, wall_pos):
+    x_min, x_max, y_min, y_max = getRectLimit(wall_point_num, wall_pos['x'], wall_pos['y'])
+    for i in range(wall_point_num - 1):  
+        cur_x = wall_pos['x'][i]
+        cur_y = wall_pos['y'][i]
+        next_x = wall_pos['x'][i+1]
+        next_y = wall_pos['y'][i+1]
+        if isBoundWall(cur_x, cur_y, next_x, next_y, x_min, x_max, y_min, y_max):
+            continue
+        if side == 1:
+            if cur_x > 0 and next_x > 0 and abs(cur_x - next_x) > 200 and abs(cur_y - next_y) < 30:
+                print("Side", side, " has cross wall!", cur_x, cur_y, next_x, next_y)
+        if side == 3:
+            if cur_x < 0 and next_x < 0 and abs(cur_x - next_x) > 200 and abs(cur_y - next_y) < 30:
+                print("Side", side, " has cross wall!", cur_x, cur_y, next_x, next_y)
+        
+        if side == 2:
+            if cur_y < 0 and next_y < 0 and abs(cur_x - next_x) < 30 and abs(cur_y - next_y) > 200:
+                print("Side", side, " has cross wall!", cur_x, cur_y, next_x, next_y)
+        
+        if side == 4:
+            if cur_y > 0 and next_y > 0 and abs(cur_x - next_x) < 30 and abs(cur_y - next_y) > 200:
+                print("Side", side, " has cross wall!", cur_x, cur_y, next_x, next_y)
+                        
             
 
 
 
+def generate_polygon(x_list, y_list):
+    num = len(x_list)
+    point_list = []
+    for i in range(num):           
+        point_list.append((x_list[i],y_list[i]))
+      
+    polygon = Polygon(point_list)
+    
+    return polygon   
+            
+
+                
+            
+    
+
+'''异形区域检测'''
+def identifySpecialRect(shape_point_num, shape_pos, wall_point_num, wall_pos):
+    x_min, x_max, y_min, y_max = getRectLimit(shape_point_num, shape_pos['x'], shape_pos['y'])
+    print(shape_point_num, wall_point_num)
+    
+    wall_x = []
+    wall_y = []
+    for i in range(wall_point_num):
+        wall_x.append(wall_pos['x'][i])
+        wall_y.append(wall_pos['y'][i])
+        
+    wall_x.sort()
+    wall_y.sort()
+    
+    thres1 = 60
+    thres2 = 500
+    left_min_dist = 10000000
+    right_min_dist = 1000000
+    top_min_dist = 10000000
+    bottom_min_dist = 1000000
+    
+    for i in range(wall_point_num):
+        if i == 0 or i == wall_point_num - 1:
+            continue
+        
+        dist = wall_x[i] - wall_x[0]
+        if dist > thres1 and dist < thres2 and dist < left_min_dist:
+            left_min_dist = dist
+            
+        dist = wall_x[wall_point_num-1] - wall_x[i]
+        if dist > thres1 and dist < thres2 and dist < right_min_dist:
+            right_min_dist = dist
+            
+        dist = wall_y[i] - wall_y[0]
+        if dist > thres1 and dist < thres2 and dist < bottom_min_dist:
+            bottom_min_dist = dist
+            
+        dist = wall_y[wall_point_num - 1] - wall_y[i]
+        if dist > thres1 and dist < thres2 and dist < top_min_dist:
+            top_min_dist = dist
+            
+    print("Search:",left_min_dist, right_min_dist, top_min_dist, bottom_min_dist)
+    hasCrossWall(1, wall_point_num, wall_pos)
+    hasCrossWall(2, wall_point_num, wall_pos)
+    hasCrossWall(3, wall_point_num, wall_pos)
+    hasCrossWall(4, wall_point_num, wall_pos)
+    '''
+    wall_polygon = generate_polygon(wall_pos['x'], wall_pos['y'])
+    left_rect_polygon = generate_polygon([wall_x[0], wall_x[0], wall_x[0] + 500, wall_x[0] + 500], 
+                                         [wall_y[0], wall_y[wall_point_num-1], wall_y[wall_point_num-1], wall_y[0]])
+    
+    right_rect_polygon = generate_polygon([wall_x[wall_point_num-1], wall_x[wall_point_num-1], wall_x[wall_point_num-1]-500, wall_x[wall_point_num-1]-500],
+                                          [wall_y[wall_point_num-1], wall_y[0],wall_y[0],wall_y[wall_point_num-1]])
+    
+    top_rect_polygon = generate_polygon([wall_x[0], wall_x[wall_point_num-1], wall_x[wall_point_num-1], wall_x[0]],
+                                        [wall_y[wall_point_num-1], wall_y[wall_point_num-1], wall_y[wall_point_num-1]-500, wall_y[wall_point_num-1]-500])
+    bottom_rect_polygon = generate_polygon([wall_x[0], wall_x[wall_point_num-1], wall_x[wall_point_num-1], wall_x[0]],
+                                           [wall_y[0], wall_y[0], wall_y[0]+500, wall_y[0] + 500])
+
+
+
+    left_p = left_rect_polygon.difference(wall_polygon)
+    if left_p != None and left_p.area > 1000:
+        print("LEFT!")
+     
+    right_p = right_rect_polygon.difference(wall_polygon)
+    if right_p != None and right_p.area > 1000:
+        print("RIGHT!")
+       
+    top_p = top_rect_polygon.difference(wall_polygon)
+    if top_p != None and top_p.area > 1000:
+        print("TOP!")
+        
+    bottom_p = bottom_rect_polygon.difference(wall_polygon)
+    if bottom_p != None and bottom_p.area > 1000:
+        print("BOTTOM!")
+    '''
+    
+    
+    
+    '''
+    垂直交线法
+    在距离左边界300毫米处画一条平行与X轴或Y轴的线，检查区域内部是否有交点，定位出异形区域所处的方位
+    
+    
+    '''
+    
+    
+    
 
 
 

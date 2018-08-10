@@ -35,6 +35,7 @@ import requests
 import json
 import RoomResponse
 import PatternLearning
+import MyRoom
 
 
 '''请求批量Room列表'''    
@@ -124,11 +125,11 @@ def getRoomInfo():
             drawDNA(response_text)
                         
             #重置位置信息
-            resetForRoomDetail()
+            #resetForRoomDetail()
             
             #msgbox.showinfo("Info", "获取Room详细信息成功!")
         except:
-            err_msg = "获取Room详细信息失败！"
+            err_msg = "获取Room详细信息异常！"
             msgbox.showerror("Error", err_msg)
 
 def isObjCategoryFeedbacked(obj_name):
@@ -246,7 +247,9 @@ def showFeedBackList():
     print(feedback_list)
     msgbox.showinfo("Info", feedback_list)
 
-
+def pointRectGrow():
+    return
+    
 def onPress(event):
     #print("my pos:", event.button, event.xdata, event.ydata)
     x_input.delete(0,tkinter.END)
@@ -279,13 +282,14 @@ def drawDNA(response_text):
         door_num, door_pos = RoomResponse.getDoorInfoFromRoom(response_text)
         shape_point_num, shape_pos = RoomResponse.getWallShapeInfoFromRoom(response_text, "shapes")
         wall_num, wall_pos = RoomResponse.getWallShapeInfoFromRoom(response_text, "walls")
-        window_num, window_pos = RoomResponse.getWindowInfoFromRoom(response_text)
+        window_num, window_pos = RoomResponse.getWindowInfoFromRoom(response_text)        
         
     except:
         msgbox.showerror("Error", "绘图失败!")
         return       
     
 
+    '''画图'''
     #清空图像，以使得前后两次绘制的图像不会重叠
     #plt.style.use('ggplot')      
     dna_plt.clear()      
@@ -308,44 +312,64 @@ def drawDNA(response_text):
     dna_plt.grid(which='minor', axis='x', linewidth=0.25, linestyle='--', color='0.75')#由每个x主坐标出发对x主坐标画垂直于x轴的线段
     dna_plt.grid(which='major', axis='y', linewidth=0.75, linestyle='--', color='0.75')
     dna_plt.grid(which='minor', axis='y', linewidth=0.25, linestyle='--', color='0.75')
-
-
-    #dna_plt.grid(linestyle='--', color='dimgray', alpha = 0.5)
+    
     canvas.show() 
     
+    ''' 异形区域检测调试 '''   
+    '''
+    PatternLearning.identifySpecialRect(shape_point_num, shape_pos, wall_num, wall_pos)
+    start_x = float(x_input.get())
+    start_y = float(y_input.get())    
+    left, right, top, bottom = PatternLearning.rectGrow(start_x, start_y, wall_num, wall_pos)
+    print(start_x, start_y, left, right, top, bottom)
+    rect = mpatches.Rectangle((left, bottom), right-left, top-bottom, color='b',alpha=0.3)
+    dna_plt.add_patch(rect)
+    #dna_plt.grid(linestyle='--', color='dimgray', alpha = 0.5)
+    '''
     
+    
+    ''' 卧室主家具位置热度图预测 '''
     if RoomResponse.isBedroom(response_text):
-        x_range, y_range = RoomResponse.getShapeRange(shape_point_num, shape_pos)
-        pattern, door_size_ratio, window_size_ratio = PatternLearning.generateRoomParttern(door_num, door_pos, window_num, window_pos, x_range, y_range)
-        free_wall, align = PatternLearning.predictObjPostitionByPattern(pattern, door_size_ratio, window_size_ratio)
-        print(pattern, free_wall, align)
+        #x_range, y_range = RoomResponse.getShapeRange(shape_point_num, shape_pos)
+        room_meta = MyRoom.RoomMeta(shape_point_num, shape_pos, wall_num, wall_pos, door_num, door_pos, window_num, window_pos)
+        x_range = room_meta.getShapeDx();
+        y_range = room_meta.getShapeDy();
+        
         pos_exp = RoomResponse.getExpList(response_text)
         pos = RoomResponse.recoverPositionPoint(pos_exp, x_range, y_range)
         print(pos)
         
         
         '''不同类型家具已有反馈位置的点图'''
-        obj_color=['b','r','y','g']
-        obj_marker=['+', '.', ',']
+        obj_color=['b','r','magenta','g']
+        obj_marker=['+', '.', 'x', 'o']
         idx = 0
         for i_key, i_value in pos.items():
             cur_color = obj_color[idx % len(obj_color)]
             cur_marker = obj_marker[idx % len(obj_marker)]
             idx += 1
+            x = []
+            y = []
             for i in range(len(i_value)):
-                x = i_value[i]['x']
-                y = i_value[i]['y']
-                dna_plt.plot(x, y, marker=cur_marker, color=cur_color)            
+                x.append(i_value[i]['x'])
+                y.append(i_value[i]['y'])
+            dna_plt.scatter(x, y, marker=cur_marker, color=cur_color, label=str(i_key))  
+        
+        handles, labels = dna_plt.get_legend_handles_labels()
+        dna_plt.legend(handles[::-1], labels[::-1], loc = 1)
             
         
         
-        #家具位置预测
-        if len(free_wall) > 0:
-            objPositon = PatternLearning.generatePointByPrediction(shape_point_num, shape_pos, wall_num, wall_pos,free_wall[0], align)
-            #print(objPositon)
-            if 318 in objPositon:
-                dna_plt.plot(objPositon[318]['x'], objPositon[318]['y'], linewidth='3.0', color='r')
-                
+        #家具位置预测       
+        room_meta.generatePointByPrediction()
+        objPositon = room_meta.getObjPosition()
+        #print(objPositon)
+        if 318 in objPositon:    #床
+            dna_plt.plot(objPositon[318]['x'], objPositon[318]['y'], linewidth='3.0', color='orange')
+            
+        if 120 in objPositon:    #衣柜
+            dna_plt.plot(objPositon[120]['x'], objPositon[120]['y'], linewidth='3.0', color='hotpink')
+        
         
 
 
@@ -371,6 +395,7 @@ if __name__ == '__main__':
     #tkinter.Button(root,text='绘制选中Room',command=drawDNA).grid(row=3,column=1, sticky=E+W)   
     tkinter.Button(root,text='反馈家具位置',command=feedBack).grid(row=3,column=1, sticky=E+W)
     tkinter.Button(root,text='查看已反馈的Room', command=showFeedBackList).grid(row=4,column=1,sticky=E+W)
+    tkinter.Button(root,text='区域生长', command=pointRectGrow).grid(row=5,column=1,sticky=E+W)
     cur_room_label = tkinter.Label(root, text='当前处理的Room：')
     cur_room_label.grid(row=6, column=0, sticky=E+W)
     cur_room_info_label = tkinter.Label(root, text='')
@@ -410,11 +435,13 @@ if __name__ == '__main__':
     x_label.grid(row=9, column=0, sticky=E)
     x_input = tkinter.Entry(root)
     x_input.grid(row=9, column=1, sticky=W)
+    x_input.insert(0, '0')
     
     y_label = tkinter.Label(root, text='y：')
     y_label.grid(row=10, column=0, sticky=E)
     y_input = tkinter.Entry(root)
     y_input.grid(row=10, column=1, sticky=W)
+    y_input.insert(0, '0')
     
     z_label = tkinter.Label(root, text='z：')
     z_label.grid(row=11, column=0, sticky=E)
@@ -445,11 +472,11 @@ if __name__ == '__main__':
     obj_dy_label = tkinter.Label(root, text='反馈家具尺寸Dy：')
     obj_dy_label.grid(row=14, column=0, sticky=E)
 
-    dx_scale = tkinter.Scale(root, from_ = 0, to = 5000, orient=tkinter.HORIZONTAL, resolution=5)
+    dx_scale = tkinter.Scale(root, from_ = 100, to = 5000, orient=tkinter.HORIZONTAL, resolution=100)
     dx_scale.grid(row=13, column=1, sticky=W)
-    dx_scale.set(1000)
+    dx_scale.set(1000)    
     
-    dy_scale = tkinter.Scale(root, from_ = 0, to = 5000, orient=tkinter.HORIZONTAL, resolution=5)
+    dy_scale = tkinter.Scale(root, from_ = 100, to = 5000, orient=tkinter.HORIZONTAL, resolution=100)
     dy_scale.grid(row=14, column=1, sticky=W)    
     dy_scale.set(1000)
     
@@ -457,7 +484,9 @@ if __name__ == '__main__':
     ip_label.grid(row=10, column=2, sticky=E)
     host_ip = tkinter.Entry(root)
     host_ip.grid(row=10,column=3, sticky=W)
-    host_ip.insert(0, '192.168.23.59:8088')
+    host_ip.insert(0, '192.168.21.28:8088')
+    host_info = tkinter.Label(root, text="请输入正确的IP地址和端口号！", fg='red')
+    host_info.grid(row=10, column=4,sticky=W)
     
     split_label = tkinter.Label(root)
     split_label.grid(row=15, column=0, columnspan=4)

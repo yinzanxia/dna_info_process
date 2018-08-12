@@ -89,12 +89,15 @@ def isRoomListSelected(room_lb):
 def resetForRoomDetail():
     #重置家具类型和坐标信息
     fur_option.current(0)
+    fur_option.current(0)
     x_input.delete(0, tkinter.END)
     x_input.insert(0, '0')
     y_input.delete(0, tkinter.END)
     y_input.insert(0, '0')
     z_input.delete(0, tkinter.END)
     z_input.insert(0, '0')
+    rotation_input.delete(0, tkinter.END)
+    rotation_input.insert(0, '0')
     
     
     feedback_list.clear()
@@ -212,26 +215,50 @@ def prepareFeedback():
 '''反馈家具位置按钮回调函数'''
 def feedBack():
     global response_text
+    if fur_direction_option.get() == '-1':
+            msgbox.showerror("Error", "请选择正确的家具正方向!")
+            return
+        
     if  fur_option.get() == '-1':
         msgbox.showerror("Error", "请选择正确的家具类型ID!")
         return
-    else:   
-        cur_id = RoomResponse.getIdFromShowText(cur_room_info_label["text"])       
-        cur_id_num = int(cur_id[3:])
-        msg = cur_id + '反馈位置： [category'  + fur_option.get() +'] '
-        postition = '(x:' + x_input.get() + ', y:' + y_input.get() + ', z:' + z_input.get() + ', rotation:' + rotation_input.get() + ')'
-        msg = msg + postition + ' success!'
-        #feedback_pos[fur_input.get()] = postition      
-        room_fb_flag[cur_id_num] = True
-              
-        prepareFeedback()               
-        
-        my_url = 'http://'+ host_ip.get() + '/ai/room/feedback/update/' + RoomResponse.getRidFromResp(response_text)    #e099ce62b9ef4d5f8b08027c14be4157'        
-        headers={'content-type':'application/json'}
-        my_data = json.dumps(feedback_list)
-        post_r = requests.post(my_url,headers=headers, data=my_data)
-        
-        msgbox.showinfo("Info", msg)  
+    else:  
+            
+        try:
+            cur_id = RoomResponse.getIdFromShowText(cur_room_info_label["text"])       
+            cur_id_num = int(cur_id[3:])
+            msg = cur_id + '反馈位置： [category'  + fur_option.get() +'] '
+            postition = '(x:' + x_input.get() + ', y:' + y_input.get() + ', z:' + z_input.get() + ', rotation:' + rotation_input.get() + ')'
+            msg = msg + postition + ' success!'
+            #feedback_pos[fur_input.get()] = postition      
+            room_fb_flag[cur_id_num] = True
+                  
+            prepareFeedback()               
+            
+            my_url = 'http://'+ host_ip.get() + '/ai/room/feedback/update/' + RoomResponse.getRidFromResp(response_text)    #e099ce62b9ef4d5f8b08027c14be4157'        
+            headers={'content-type':'application/json'}
+            my_data = json.dumps(feedback_list)
+            post_r = requests.post(my_url,headers=headers, data=my_data)
+            
+            
+            '''记录到本地文件中'''
+            filename = 'feedback_record.txt'
+            with open(filename, 'a') as f:
+                record_list = []
+                record_list.append(response_text)
+                record_list.append(feedback_list)
+                record_str = json.dumps(record_list)
+                f.write(record_str)
+                f.write('\n')
+                f.close()
+            fur_option.current(0)
+            fur_direction_option.current(0)
+            msgbox.showinfo("Info", msg)  
+            
+        except:
+            fur_option.current(0)
+            fur_direction_option.current(0)
+            msgbox.showerror("Error", "反馈过程出现异常，重新获取该room详细信息可确认反馈是否成功!")    
         
         return
 
@@ -260,6 +287,20 @@ def onPress(event):
     
     dna_plt=fig.add_subplot(111)
     dna_plt.plot(event.xdata, event.ydata, '*')
+    
+    
+    if fur_direction_option.get() == '上':
+        rotation_input.delete(0, END)
+        rotation_input.insert(0, '0')
+    elif fur_direction_option.get() == '右':
+        rotation_input.delete(0, END)
+        rotation_input.insert(0, '90')
+    elif fur_direction_option.get() == '下':
+        rotation_input.delete(0, END)
+        rotation_input.insert(0, '180')
+    elif fur_direction_option.get() == '左':
+        rotation_input.delete(0, END)
+        rotation_input.insert(0, '-90')    
     
     canvas.show()
   
@@ -416,7 +457,7 @@ if __name__ == '__main__':
 
     #放置标签、文本框和按钮等部件，并设置文本框的默认值和按钮的事件函数     
     split_label = tkinter.Label(root)
-    split_label.grid(row=7, column=0, columnspan=4)
+    split_label.grid(row=7, column=0, columnspan=5)
     split_line = '---------------------------------------------------------';
     split_line = split_line + split_line + split_line
     split_label.configure(text=split_line)
@@ -430,6 +471,14 @@ if __name__ == '__main__':
     fur_option['values'] = ('-1', '318-床', '120-移门衣柜','115-榻榻米', '40-儿童床', '301-沙发','323-梳妆台', '310-餐桌' , '330-书桌/工作台','114-书桌','355-坐便器','342-浴室柜','350-卫生间淋浴')
     fur_option.grid(row=8, column=1, sticky=W)
     fur_option.current(0)
+    
+    fur_direction_label = tkinter.Label(root, text='家具正方向：')
+    fur_direction_label.grid(row=8, column=2, sticky=E) 
+    fur_direction = tkinter.StringVar()
+    fur_direction_option = ttk.Combobox(root, width=12, textvariable=fur_direction)
+    fur_direction_option['values'] = ('-1', '上','下', '左', '右')
+    fur_direction_option.grid(row=8, column=3, sticky=W)
+    fur_direction_option.current(0)
     
     x_label = tkinter.Label(root, text='x：')
     x_label.grid(row=9, column=0, sticky=E)
@@ -456,15 +505,15 @@ if __name__ == '__main__':
     rotation_input.insert(0, '0')    
 
     page_idx_label = tkinter.Label(root, text='请求页编号：')
-    page_idx_label.grid(row=8, column=2, sticky=E)
+    page_idx_label.grid(row=9, column=2, sticky=E)
     page_idx_entry = tkinter.Entry(root)
-    page_idx_entry.grid(row=8, column=3, sticky=W)
+    page_idx_entry.grid(row=9, column=3, sticky=W)
     page_idx_entry.insert(0, '1')
     
     page_size_label = tkinter.Label(root, text='单页记录数量：')
-    page_size_label.grid(row=9, column=2, sticky=E)
+    page_size_label.grid(row=10, column=2, sticky=E)
     page_size_entry = tkinter.Entry(root)
-    page_size_entry.grid(row=9, column=3, sticky=W)
+    page_size_entry.grid(row=10, column=3, sticky=W)
     page_size_entry.insert(0, '35')    
     
     obj_dx_label = tkinter.Label(root, text='反馈家具尺寸Dx：')
@@ -472,24 +521,24 @@ if __name__ == '__main__':
     obj_dy_label = tkinter.Label(root, text='反馈家具尺寸Dy：')
     obj_dy_label.grid(row=14, column=0, sticky=E)
 
-    dx_scale = tkinter.Scale(root, from_ = 100, to = 5000, orient=tkinter.HORIZONTAL, resolution=100)
+    dx_scale = tkinter.Scale(root, from_ = 100, to = 5000, orient=tkinter.HORIZONTAL, resolution=50)
     dx_scale.grid(row=13, column=1, sticky=W)
     dx_scale.set(1000)    
     
-    dy_scale = tkinter.Scale(root, from_ = 100, to = 5000, orient=tkinter.HORIZONTAL, resolution=100)
+    dy_scale = tkinter.Scale(root, from_ = 100, to = 5000, orient=tkinter.HORIZONTAL, resolution=50)
     dy_scale.grid(row=14, column=1, sticky=W)    
     dy_scale.set(1000)
     
     ip_label = tkinter.Label(root, text='服务端IP：')
-    ip_label.grid(row=10, column=2, sticky=E)
+    ip_label.grid(row=11, column=2, sticky=E)
     host_ip = tkinter.Entry(root)
-    host_ip.grid(row=10,column=3, sticky=W)
-    host_ip.insert(0, '192.168.21.28:8088')
-    host_info = tkinter.Label(root, text="请输入正确的IP地址和端口号！", fg='red')
+    host_ip.grid(row=11,column=3, sticky=W)
+    host_ip.insert(0, '192.168.22.124:8088')
+    host_info = tkinter.Label(root, text="启动服务端并输入正确的IP地址和端口号！", fg='red')
     host_info.grid(row=10, column=4,sticky=W)
     
     split_label = tkinter.Label(root)
-    split_label.grid(row=15, column=0, columnspan=4)
+    split_label.grid(row=15, column=0, columnspan=5)
     split_label.configure(text=split_line)
     '''
     feedback_pos = {}

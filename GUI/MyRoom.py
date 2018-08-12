@@ -455,7 +455,7 @@ class RoomMeta:
         
     #wall方向和长度
 
-    def groupWalls(self):
+    def groupWalls(self, point):
         positive_x_walls = []
         negative_x_walls = []
         positive_y_walls = []
@@ -470,13 +470,13 @@ class RoomMeta:
             cur_wall = MyWall.LinearWall(p1, p2)
             
             if cur_wall.getDirection() == 0:             
-                if cur_y > 0:
+                if cur_y > point.getY():
                     positive_x_walls.append(cur_wall)
                 else:
                     negative_x_walls.append(cur_wall)
                 
             if cur_wall.getDirection() == 1:            
-                if cur_x > 0:
+                if cur_x > point.getX():
                     positive_y_walls.append(cur_wall)
                 else:
                     negative_y_walls.append(cur_wall)
@@ -734,8 +734,8 @@ class RoomMeta:
                      
     '''沿衣柜背靠的墙搜索衣柜的长度，最长不超过1500, 同方向既有wall长度限制，又有door边框限制时，以更靠近的为准'''
     def searchVirtualCorner1(self, wall_index, start_align, start_x, start_y):        
-        
-        pos_x_walls, neg_x_walls, pos_y_walls, neg_y_walls = self.groupWalls()
+        zero_point = MyPoint.Point(0, 0)
+        pos_x_walls, neg_x_walls, pos_y_walls, neg_y_walls = self.groupWalls(zero_point)
         virtual_len = 1500
         
         if wall_index == 1:
@@ -898,3 +898,118 @@ class RoomMeta:
             
     def getObjPosition(self):
         return self.objPosition
+    
+    
+    
+    def growToXMin(self, center_point):
+        tmp_x = self.wall_xmin
+        wall_len = 0
+        for i in range(self.wall_point_num-1):
+            cur_x = self.wall_pos['x'][i]
+            cur_y = self.wall_pos['y'][i]
+            next_x = self.wall_pos['x'][i+1]
+            next_y = self.wall_pos['y'][i+1]   
+            
+            wall = MyWall.LinearWall(MyPoint.Point(cur_x, cur_y), MyPoint.Point(next_x, next_y))
+            
+            if wall.isYWall() == False:
+                continue   
+           
+            if wall.isHorizontalLeftOfPoint(center_point):  #平行与Y轴且在点与边界之间
+                if tmp_x < wall.getMaxX():
+                    tmp_x = wall.getMaxX()
+                    wall_len = wall.getLength()
+                    
+        return tmp_x, wall_len
+    
+
+    def growToXMax(self, center_point):
+        tmp_x = self.wall_xmax
+        wall_len = 0
+        for i in range(self.wall_point_num-1):
+            cur_x = self.wall_pos['x'][i]
+            cur_y = self.wall_pos['y'][i]
+            next_x = self.wall_pos['x'][i+1]
+            next_y = self.wall_pos['y'][i+1]   
+            
+            wall = MyWall.LinearWall(MyPoint.Point(cur_x, cur_y), MyPoint.Point(next_x, next_y))
+            
+            if wall.isYWall() == False:
+                continue
+                       
+            if wall.isHorizontalRightOfPoint(center_point):  #平行与Y轴且在点与边界之间
+                if tmp_x > wall.getMinX():
+                    tmp_x = wall.getMinX()
+                    wall_len = wall.getLength()
+                    
+        return tmp_x, wall_len
+    
+
+    def growToYMin(self, center_point):
+        tmp_y = self.wall_ymin
+        wall_len = 0
+        for i in range(self.wall_point_num-1):
+            cur_x = self.wall_pos['x'][i]
+            cur_y = self.wall_pos['y'][i]
+            next_x = self.wall_pos['x'][i+1]
+            next_y = self.wall_pos['y'][i+1]
+            
+            wall = MyWall.LinearWall(MyPoint.Point(cur_x, cur_y), MyPoint.Point(next_x, next_y))
+            
+            if wall.isXWall() == False:
+                continue
+                       
+            if wall.isVerticalLowerOfPoint(center_point):  #平行与X轴且在点与边界之间
+                if tmp_y < wall.getMaxY():
+                    tmp_y = wall.getMaxY()
+                    wall_len = wall.getLength()
+        return tmp_y, wall_len
+
+    def growToYMax(self, center_point):
+        tmp_y = self.wall_ymax
+        wall_len = 0
+        for i in range(self.wall_point_num-1):
+            cur_x = self.wall_pos['x'][i]
+            cur_y = self.wall_pos['y'][i]
+            next_x = self.wall_pos['x'][i+1]
+            next_y = self.wall_pos['y'][i+1]
+            
+            wall = MyWall.LinearWall(MyPoint.Point(cur_x, cur_y), MyPoint.Point(next_x, next_y))
+            
+            if wall.isXWall() == False:
+                continue
+            
+            if wall.isVerticalHigherOfPoint(center_point):  #平行与Y轴且在点与边界之间
+                if tmp_y > wall.getMinY():
+                    tmp_y =  wall.getMinY()
+                    wall_len = wall.getLength()
+                    
+        return tmp_y, wall_len
+        
+    
+    def rectGrow(self, center_x, center_y):
+        left = right = center_x
+        top = bottom = center_y
+        
+        startPoint = MyPoint.Point(center_x, center_y)
+        
+        '''优先向某个方向生长应该检查距离最近的墙的距离而非边界墙的距离'''
+        if center_x - self.wall_xmin < self.wall_xmax - center_x:
+            #优先向x_min方向生长 
+            left, wall_len = self.growToXMin(startPoint)        
+        else:
+            #优先向x_max方向生长        
+            right, wall_len = self.growToXMax(startPoint)
+        
+        if center_y - self.wall_ymin < self.wall_ymax - center_y:
+            #优先向y_min方向生长        
+            bottom, wall_len1 = self.growToYMin(startPoint)
+        else:
+            #优先向y_max方向生长        
+            top, wall_len = self.growToYMax(startPoint)
+            
+        '''以上完成两个方向上距离墙的搜索'''                
+        
+        return left, right, top, bottom
+        
+        

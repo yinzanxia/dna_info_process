@@ -70,4 +70,54 @@ class LinearWall:
     def showDetail(self):
         print("Start(", self.getStartX(), self.getStartY(),"), End(", self.getEndX(), self.getEndY(),")")
     
+    def isLeftOfPoint(self, p):
+        if (self.isYWall() and self.getMaxX() < p.getX()):
+            return True
+        else:
+            return False
+        
+    def isHorizontalLeftOfPoint(self, p):
+        if self.isLeftOfPoint(p) and self.getMaxY() > p.getY() and self.getMinY() < p.getY():
+            return True
+        else:
+            return False
+        
+    def isRightOfPoint(self, p):
+        if (self.isYWall() and self.getMinX() > p.getX()):
+            return True
+        else:
+            return False
+        
+    def isHorizontalRightOfPoint(self, p):
+        if self.isRightOfPoint(p) and self.getMaxY() > p.getY() and self.getMinY() < p.getY():
+            return True
+        else:
+            return False
+        
+    def isHigherOfPoint(self, p):
+        if self.isXWall() and self.getMinY() > p.getY():
+            return True
+        else:
+            return False
+        
+    def isVerticalHigherOfPoint(self, p):
+        if self.isHigherOfPoint(p) and self.getMaxX() > p.getX() and self.getMinX() < p.getX():
+            return True
+        else:
+            return False
+        
+    def isLowerOfPoint(self, p):
+        if self.isXWall() and self.getMaxY() < p.getY():
+            return True
+        else:
+            return False
+        
+    def isVerticalLowerOfPoint(self, p):
+        if self.isLowerOfPoint(p) and self.getMaxX() > p.getX() and self.getMinX() < p.getX():
+            return True
+        else:
+            return False
+        
+        
+    
     

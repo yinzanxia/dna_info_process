@@ -456,25 +456,19 @@ def drawDNA(response_text):
     rect = mpatches.Rectangle((left, bottom), right-left, top-bottom, color='b',alpha=0.3)
     dna_plt.add_patch(rect)
     #dna_plt.grid(linestyle='--', color='dimgray', alpha = 0.5)
-    '''
+    '''    
     
     
-    ''' 卧室主家具位置热度图预测 '''
-    
-    if RoomResponse.isBedroom(response_text):
-        #x_range, y_range = RoomResponse.getShapeRange(shape_point_num, shape_pos)
-        room_meta = MyRoom.RoomMeta(shape_point_num, shape_pos, wall_num, wall_pos, door_num, door_pos, window_num, window_pos)
-        x_range = room_meta.getShapeDx();
-        y_range = room_meta.getShapeDy();
+    if True: #RoomResponse.isBedroom(response_text):
+        x_range, y_range = RoomResponse.getRange(shape_point_num, shape_pos)        
         
         pos_exp = RoomResponse.getExpList(response_text)
         pos = RoomResponse.recoverPositionPoint(pos_exp, x_range, y_range)
-        print(pos)
-        
+        print(pos)        
         
         #不同类型家具已有反馈位置的点图
-        obj_color=['b','r','magenta','g']
-        obj_marker=['+', '.', 'x', 'o']
+        obj_color=['orange','hotpink','dodgerblue','magenta', 'lime', 'lightgreen']
+        obj_marker=['^', '+', '.', 'x', 'o', '*']
         idx = 0
         for i_key, i_value in pos.items():
             cur_color = obj_color[idx % len(obj_color)]
@@ -486,13 +480,6 @@ def drawDNA(response_text):
                 x.append(i_value[i]['x'])
                 y.append(i_value[i]['y'])
             dna_plt.scatter(x, y, marker=cur_marker, color=cur_color, label=str(i_key))  
-        
-        handles, labels = dna_plt.get_legend_handles_labels()
-        dna_plt.legend(handles[::-1], labels[::-1], loc = 1)
-        
-        for i_key, i_value in pos.items(): 
-            if i_key != 120:
-                continue
             
             for i in range(len(i_value)):
                 x = []
@@ -512,11 +499,19 @@ def drawDNA(response_text):
                 
                 x.append(center_x - dx/2)
                 y.append(center_y + dy/2)
-                dna_plt.plot(x, y, color='k', linewidth='0.8', alpha=0.5) 
-            
+                dna_plt.plot(x, y, color=cur_color, linewidth='0.8', alpha=0.5) 
+        
+        handles, labels = dna_plt.get_legend_handles_labels()
+        dna_plt.legend(handles[::-1], labels[::-1], loc = 1)
+        
+                    
         
         
-        #家具位置预测       
+        #家具位置预测 
+        '''
+        room_meta = MyRoom.RoomMeta(shape_point_num, shape_pos, wall_num, wall_pos, door_num, door_pos, window_num, window_pos)
+        x_range = room_meta.getShapeDx();
+        y_range = room_meta.getShapeDy();
         room_meta.generatePointByPrediction()
         objPositon = room_meta.getObjPosition()
         #print(objPositon)
@@ -525,6 +520,7 @@ def drawDNA(response_text):
             
         if 120 in objPositon:    #衣柜
             dna_plt.plot(objPositon[120]['x'], objPositon[120]['y'], linewidth='3.0', color='hotpink')
+        '''
         
         
 

@@ -295,4 +295,27 @@ def encodeFeedBack(parent, child):
     else:
         for ikey, ivalue in child.items():            
             parent['feedback'][ikey] = ivalue
+            
+def getRange(shape_point_num, shape_pos):
+        x_min = 1000000
+        x_max = -1000000
+        y_min = 1000000
+        y_max = -1000000
+        
+        for i in range(shape_point_num):
+            x = shape_pos['x'][i]
+            y = shape_pos['y'][i]
+            if x < x_min:
+                x_min = x
+            if x > x_max:
+                x_max = x
+            if y > y_max:
+                y_max = y
+            if y < y_min:
+                y_min = y
+        
+        shape_dx = x_max - x_min
+        shape_dy = y_max - y_min       
+       
+        return shape_dx, shape_dy;
                 

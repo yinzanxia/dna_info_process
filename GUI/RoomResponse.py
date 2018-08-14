@@ -81,15 +81,20 @@ def getExpList(detail_room_response_text):
                             pos[cur_obj["categoryId"]] = []
                             
                         location = decodeExp(cur_obj["expression"])
+                        dx = cur_obj['objDx']
+                        dy = cur_obj['objDy']
                         if len(location) > 0:
                             tmp = {}
                             tmp['x'] = location[0]
                             tmp['y'] = location[1]
                             tmp['z'] = location[2]
+                            tmp['dx'] = dx
+                            tmp['dy'] = dy
                             pos[cur_obj["categoryId"]].append(tmp)
                         
     
     return pos;
+
 
 def recoverPositionPoint(pos, x_range, y_range):
     recover_position = {}
@@ -102,6 +107,8 @@ def recoverPositionPoint(pos, x_range, y_range):
             tmp['x'] = cur_pos['x'] * x_range / 2.0
             tmp['y'] = cur_pos['y'] * y_range / 2.0
             tmp['z'] = cur_pos['z']
+            tmp['dx'] = cur_pos['dx']
+            tmp['dy'] = cur_pos['dy']
             recover_position[i_key].append(tmp)
             
     return recover_position

@@ -5,8 +5,8 @@ Created on Mon Jul 30 21:57:10 2018
 @author: mayn
 """
 
-from shapely.geometry import Polygon
-from shapely.geometry import LineString
+#from shapely.geometry import Polygon
+#from shapely.geometry import LineString
 import MyPoint
 import MyWall
 

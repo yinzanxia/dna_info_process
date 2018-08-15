@@ -89,7 +89,7 @@ def resetForRoomDetail():
     #重置家具类型和坐标信息
     fur_option.current(0)
     fur_direction_option.current(0)
-    custom_area_option.current(0)
+    #custom_area_option.current(0)
     x_input.delete(0, tkinter.END)
     x_input.insert(0, '0')
     y_input.delete(0, tkinter.END)
@@ -142,58 +142,46 @@ def isObjCategoryFeedbacked(obj_name):
         if cur_feedback["name"] == obj_name:
             return i
     return -1
+ 
+def prepareSpecialAreaFeedBack(aijia_feedback, center_x, center_y, dx, dy):
+    global rect_x
+    global rect_y
+    aijia_feedback["isSpecialArea"] = True
+    aijia_feedback["minLocation"] = {}
+    aijia_feedback["minLocation"]["x"] = min(rect_x)
+    aijia_feedback["minLocation"]["y"] = min(rect_y)
+    aijia_feedback["minLocation"]["z"] = 0
+    aijia_feedback["maxLocation"] = {}
+    aijia_feedback["maxLocation"]["x"] = max(rect_x)
+    aijia_feedback["maxLocation"]["y"] = max(rect_y)
+    aijia_feedback["maxLocation"]["z"] = 0
     
-def prepareFeedback():
-    global feedback_list
-    
-    obj_name = fur_option.get()
-    if obj_name == '定制区域':
-        search_idx = isObjCategoryFeedbacked(obj_name)
-        if search_idx != -1:
-            aijia_feedback = feedback_list[search_idx]
-        else:
-            aijia_feedback = {}
-        if custom_area_option.get() == '左->右[下]':
-            aijia_feedback["categoryId"] = -10
-        elif custom_area_option.get() == '左->右[上]':
-            aijia_feedback["categoryId"] = -11
-        elif custom_area_option.get() == '右->左[下]':
-            aijia_feedback["categoryId"] = -20
-        elif custom_area_option.get() == '右->左[上]':
-            aijia_feedback["categoryId"] = -21
-        elif custom_area_option.get() == '上->下[左]':
-            aijia_feedback["categoryId"] = -30
-        elif custom_area_option.get() == '上->下[右]':
-            aijia_feedback["categoryId"] = -31
-        elif custom_area_option.get() == '下->上[左]':
-            aijia_feedback["categoryId"] = -40
-        elif custom_area_option.get() == '下->上[右]':
-            aijia_feedback["categoryId"] = -41
-        else:
-            aijia_feedback["categoryId"] = -100      
-    else:        
-        obj_name_list = obj_name.split('-')
-        obj_name = obj_name_list[1]
-        search_idx = isObjCategoryFeedbacked(obj_name)
-        if search_idx != -1:
-            aijia_feedback = feedback_list[search_idx]
-        else:
-            aijia_feedback = {}
-        aijia_feedback["categoryId"] = int(obj_name_list[0])
-        
-    
+def prepareZeroSpecialAreaFeedBack(aijia_feedback):
+    aijia_feedback["isSpecialArea"] = False
+    aijia_feedback["minLocation"] = {}
+    aijia_feedback["minLocation"]["x"] = 0
+    aijia_feedback["minLocation"]["y"] = 0
+    aijia_feedback["minLocation"]["z"] = 0
+    aijia_feedback["maxLocation"] = {}
+    aijia_feedback["maxLocation"]["x"] = 0
+    aijia_feedback["maxLocation"]["y"] = 0
+    aijia_feedback["maxLocation"]["z"] = 0
+
+   
+
+def prepareLocationFeedBack(aijia_feedback, obj_name, center_x, center_y, center_z, rotation, dx, dy):
     aijia_feedback["name"] = obj_name          #物品名称
     #物品旋转信息
     aijia_feedback["rotate"] = {}
     aijia_feedback["rotate"]["xAxis"] = 0.0
     aijia_feedback["rotate"]["yAxis"] = 0.0
-    aijia_feedback["rotate"]["zAxis"] = 0 - float(rotation_input.get())
+    aijia_feedback["rotate"]["zAxis"] = rotation
     
     #物品底部中心点位置
     aijia_feedback["location"] = {}
-    aijia_feedback["location"]["x"] = float(x_input.get())
-    aijia_feedback["location"]["y"] = float(y_input.get())
-    aijia_feedback["location"]["z"] = float(z_input.get())
+    aijia_feedback["location"]["x"] = center_x
+    aijia_feedback["location"]["y"] = center_y
+    aijia_feedback["location"]["z"] = center_z
     aijia_feedback["locationInHouse"] = {}
     aijia_feedback["locationInHouse"]["x"] = 0.0
     aijia_feedback["locationInHouse"]["y"] = 0.0
@@ -213,13 +201,12 @@ def prepareFeedback():
     
     #物品变换前的长宽高
     aijia_feedback["size"] = {}
-    aijia_feedback["size"]["dx"] = dx_scale.get()
-    aijia_feedback["size"]["dy"] = dy_scale.get()
+    aijia_feedback["size"]["dx"] = dx
+    aijia_feedback["size"]["dy"] = dy
     aijia_feedback["size"]["dz"] = 0.0
     
     aijia_feedback["skuId"] = 1
-    aijia_feedback["modelCode"] = 0
-    
+    aijia_feedback["modelCode"] = 0    
    
     
     #修正移动
@@ -234,7 +221,42 @@ def prepareFeedback():
     aijia_feedback["fixedRotate"]["yAxis"] = 0.0
     aijia_feedback["fixedRotate"]["zAxis"] = 0.0
     
-    aijia_feedback["mark"] = 0
+    aijia_feedback["mark"] = 0    
+        
+def prepareFeedback():
+    global feedback_list
+    
+    dx = float(dx_scale.get())
+    dy = float(dy_scale.get())
+    center_x = float(x_input.get())
+    center_y = float(y_input.get())
+    center_z = float(z_input.get())
+    rotation = 0 - float(rotation_input.get())
+    
+    obj_name = fur_option.get()
+    if obj_name == '定制区域':
+        search_idx = isObjCategoryFeedbacked(obj_name)
+        if search_idx != -1:
+            aijia_feedback = feedback_list[search_idx]
+        else:
+            aijia_feedback = {}
+        aijia_feedback["categoryId"] = 0    
+        dx = max(rect_x) - min(rect_x)
+        dy = max(rect_y) - min(rect_y)
+        prepareSpecialAreaFeedBack(aijia_feedback, center_x, center_y, dx, dy) 
+            
+    else:        
+        obj_name_list = obj_name.split('-')
+        obj_name = obj_name_list[1]
+        search_idx = isObjCategoryFeedbacked(obj_name)
+        if search_idx != -1:
+            aijia_feedback = feedback_list[search_idx]
+        else:
+            aijia_feedback = {}
+        aijia_feedback["categoryId"] = int(obj_name_list[0])
+        prepareZeroSpecialAreaFeedBack(aijia_feedback)
+        
+    prepareLocationFeedBack(aijia_feedback, obj_name, center_x, center_y, center_z, rotation, dx, dy)    
     
     if search_idx == -1:
         feedback_list.append(aijia_feedback)
@@ -243,6 +265,7 @@ def prepareFeedback():
 '''反馈家具位置按钮回调函数'''
 def feedBack():
     global response_text
+    global rect_x
     if fur_direction_option.get() == '-1':
             msgbox.showerror("Error", "请选择正确的家具正方向!")
             return    
@@ -250,8 +273,8 @@ def feedBack():
     if  fur_option.get() == '-1':
         msgbox.showerror("Error", "请选择正确的家具类型ID!")
         return
-    elif fur_option.get() == "定制区域" and custom_area_option.get() == '-1':       
-        msgbox.showerror("Error", "请选择正确的区域方向!")
+    elif fur_option.get() == "定制区域" and len(rect_x) != 2:       
+        msgbox.showerror("Error", "未设置定制区域")
         return
     else:  
             
@@ -344,68 +367,76 @@ def updateRotationByObjDirection():
         rotation_input.delete(0, tkinter.END)
         rotation_input.insert(0, '-90')
  
-def updateCustomRuleAreaOption(dx, dy, x, y):
-    if dx > dy:  #可能是左右方向
-        if y > 0 and x < 0:   
-            custom_area_option.current(1)
-        elif y > 0 and x > 0:
-            custom_area_option.current(2)
-        elif y < 0 and x < 0:
-            custom_area_option.current(5)
-        elif y < 0 and x > 0:
-            custom_area_option.current(6)
-    else: #可能是上下方向
-        if x > 0 and y > 0:
-            custom_area_option.current(3)
-        elif x > 0 and y < 0:
-            custom_area_option.current(4)
-        elif x < 0 and y > 0:
-            custom_area_option.current(7)
-        elif x < 0 and y < 0:
-            custom_area_option.current(8)
+
             
-def onPress(event):
-    
-    if fur_option.get() == '定制区域':
-        if dx_scale.get() > dy_scale.get() and custom_area_option.get() != '左->右[下]' and custom_area_option.get() != '右->左[下]' and custom_area_option.get() != '左->右[上]' and custom_area_option.get() != '右->左[上]':
-            msgbox.showinfo("Info", "定制区域矢量方向不正确，请重新选择!")
-            return
-        elif dx_scale.get() < dy_scale.get() and custom_area_option.get() != '上->下[左]' and custom_area_option.get() != '下->上[左]' and custom_area_option.get() != '上->下[右]' and custom_area_option.get() != '下->上[右]':
-            msgbox.showinfo("Info", "定制区域矢量方向不正确，请重新选择!")
-            return
-        elif dx_scale.get() == dy_scale.get():
-             msgbox.showinfo("Info", "定制区域请调整成线形!")
-             return
-        
-        updateCustomRuleAreaOption(dx_scale.get(), dy_scale.get(), event.xdata, event.ydata)
+def onPress(event):  
+    global rect_x
+    global rect_y
     #print("my pos:", event.button, event.xdata, event.ydata)
-    x_input.delete(0,tkinter.END)
-    x_input.insert(0,str(event.xdata))
-    
-    y_input.delete(0,tkinter.END)
-    y_input.insert(0,str(event.ydata))
-    
-    dna_plt=fig.add_subplot(111)
-    dna_plt.plot(event.xdata, event.ydata, '*')
-    
-    updateRotationByObjDirection()
+    if feedback_mode.get() == 1:
+        x_input.delete(0,tkinter.END)
+        x_input.insert(0,str(event.xdata))
         
+        y_input.delete(0,tkinter.END)
+        y_input.insert(0,str(event.ydata))
+        
+        dna_plt=fig.add_subplot(111)
+        dna_plt.plot(event.xdata, event.ydata, '*')
+        
+        updateRotationByObjDirection()           
+        
+        canvas.draw()
+    elif feedback_mode.get() == 2:
+        
+        dna_plt=fig.add_subplot(111)   
+        if (len(rect_x) >= 2):
+            rect_x.clear()
+            rect_y.clear()
+            
+        rect_x.append(event.xdata)
+        rect_y.append(event.ydata)        
+        
+        if len(rect_x) == 1:
+            dna_plt.plot(event.xdata, event.ydata, '+')  
+        elif len(rect_x) == 2:
+            x = []
+            y = []
+            x.append(rect_x[0])
+            y.append(rect_y[0])
+            
+            x.append(rect_x[0])
+            y.append(rect_y[1])
+            
+            x.append(rect_x[1])
+            y.append(rect_y[1])
+            
+            x.append(rect_x[1])
+            y.append(rect_y[0])
+            
+            x.append(rect_x[0])
+            y.append(rect_y[0])
+            dna_plt.plot(x, y, linewidth='0.5', color='m')             
+            feedback_mode.set(1)
     
-    canvas.draw()
+
   
 
 def onMotion(event):
     if event.inaxes is None:        
         return
     else: 
-        dx = dx_scale.get() / 2.0
-        dy = dy_scale.get() / 2.0
-        x = [event.xdata - dx, event.xdata + dx, event.xdata + dx, event.xdata - dx]
-        y = [event.ydata - dy, event.ydata - dy, event.ydata + dy, event.ydata + dy]
-
-        polygon.set_xy(list(zip(x,y)))        
+        if feedback_mode.get() == 2:
+            x = [event.xdata, event.xdata, event.xdata, event.xdata]
+            y = [event.ydata, event.ydata, event.ydata, event.ydata]
+            polygon.set_xy(list(zip(x,y))) 
+        else:        
+            dx = dx_scale.get() / 2.0
+            dy = dy_scale.get() / 2.0
+            x = [event.xdata - dx, event.xdata + dx, event.xdata + dx, event.xdata - dx]
+            y = [event.ydata - dy, event.ydata - dy, event.ydata + dy, event.ydata + dy]
+            polygon.set_xy(list(zip(x,y)))  
+            
         event.canvas.draw()        
-       
         return
     
 def drawDNA(response_text):
@@ -471,6 +502,8 @@ def drawDNA(response_text):
         obj_marker=['^', '+', '.', 'x', 'o', '*']
         idx = 0
         for i_key, i_value in pos.items():
+            if i_key == 0:
+                continue
             cur_color = obj_color[idx % len(obj_color)]
             cur_marker = obj_marker[idx % len(obj_marker)]
             idx += 1
@@ -546,8 +579,10 @@ if __name__ == '__main__':
     tkinter.Button(root,text='获取选中Room信息',command=getRoomInfo).grid(row=2,column=1, sticky=tkinter.E+tkinter.W)
     #tkinter.Button(root,text='绘制选中Room',command=drawDNA).grid(row=3,column=1, sticky=E+W)   
     tkinter.Button(root,text='*反馈家具位置/定制区域*',command=feedBack).grid(row=3,column=1, sticky=tkinter.E+tkinter.W)    
-    tkinter.Button(root,text='查看已反馈的Room', command=showFeedBackList).grid(row=5,column=1,sticky=tkinter.E+tkinter.W)
-    #tkinter.Button(root,text='区域生长', command=pointRectGrow, state=tkinter.DISABLED).grid(row=6,column=1,sticky=tkinter.E+tkinter.W)
+    tkinter.Button(root,text='查看已反馈的Room', command=showFeedBackList, state=tkinter.DISABLED).grid(row=4,column=1,sticky=tkinter.E+tkinter.W)
+    tkinter.Button(root,text='区域生长', command=pointRectGrow, state=tkinter.DISABLED).grid(row=5,column=1,sticky=tkinter.E+tkinter.W)
+    
+    
     cur_room_label = tkinter.Label(root, text='当前处理的Room：')
     cur_room_label.grid(row=6, column=0, sticky=tkinter.E+tkinter.W)
     cur_room_info_label = tkinter.Label(root, text='')
@@ -568,106 +603,121 @@ if __name__ == '__main__':
     #rotate_arrow = mpatches.Arrow(100, 110, 11, 12, width=200, color='r')
 
     #放置标签、文本框和按钮等部件，并设置文本框的默认值和按钮的事件函数     
+    
+    feedback_mode = tkinter.IntVar()
+    feedback_mode.set(1)
+    tkinter.Radiobutton(root, variable = feedback_mode, text='反馈点', value=1).grid(row=7, column=2)
+    tkinter.Radiobutton(root, variable = feedback_mode, text='反馈区域', value=2).grid(row=7, column=3)
+    
     split_label = tkinter.Label(root)
-    split_label.grid(row=7, column=0, columnspan=5)
+    split_label.grid(row=8, column=0, columnspan=5)
     split_line = '---------------------------------------------------------';
     split_line = split_line + split_line + split_line
     split_label.configure(text=split_line)
     
+    
+    
   
     fur_label = tkinter.Label(root, text='家具类型：')
-    fur_label.grid(row=8, column=0, sticky=tkinter.E) 
+    fur_label.grid(row=9, column=0, sticky=tkinter.E) 
 
     fur_type = tkinter.StringVar()
     fur_option = ttk.Combobox(root, width=12, textvariable=fur_type)
     fur_option['values'] = ('-1', '定制区域', '318-床', '120-移门衣柜','115-榻榻米', '40-儿童床', '301-沙发','323-梳妆台', '310-餐桌' , '330-书桌/工作台','114-书桌','355-坐便器','342-浴室柜','350-卫生间淋浴')
-    fur_option.grid(row=8, column=1, sticky=tkinter.W)
+    fur_option.grid(row=9, column=1, sticky=tkinter.W)
     fur_option.current(0)
     
     
     
     x_label = tkinter.Label(root, text='x：')
-    x_label.grid(row=9, column=0, sticky=tkinter.E)
+    x_label.grid(row=10, column=0, sticky=tkinter.E)
     x_input = tkinter.Entry(root)
-    x_input.grid(row=9, column=1, sticky=tkinter.W)
+    x_input.grid(row=10, column=1, sticky=tkinter.W)
     x_input.insert(0, '0')
     
     y_label = tkinter.Label(root, text='y：')
-    y_label.grid(row=10, column=0, sticky=tkinter.E)
+    y_label.grid(row=11, column=0, sticky=tkinter.E)
     y_input = tkinter.Entry(root)
-    y_input.grid(row=10, column=1, sticky=tkinter.W)
+    y_input.grid(row=11, column=1, sticky=tkinter.W)
     y_input.insert(0, '0')
     
     z_label = tkinter.Label(root, text='z：')
-    z_label.grid(row=11, column=0, sticky=tkinter.E)
+    z_label.grid(row=12, column=0, sticky=tkinter.E)
     z_input = tkinter.Entry(root)
-    z_input.grid(row=11, column=1, sticky=tkinter.W)
+    z_input.grid(row=12, column=1, sticky=tkinter.W)
     z_input.insert(0, '0')
     
     rotation_label = tkinter.Label(root, text='rotation：')
-    rotation_label.grid(row=12, column=0, sticky=tkinter.E)
+    rotation_label.grid(row=13, column=0, sticky=tkinter.E)
     rotation_input = tkinter.Entry(root)
-    rotation_input.grid(row=12, column=1, sticky=tkinter.W)
+    rotation_input.grid(row=13, column=1, sticky=tkinter.W)
     rotation_input.insert(0, '0')    
     
     
     fur_direction_label = tkinter.Label(root, text='家具正方向：')
-    fur_direction_label.grid(row=8, column=2, sticky=tkinter.E) 
+    fur_direction_label.grid(row=9, column=2, sticky=tkinter.E) 
     fur_direction = tkinter.StringVar()
     fur_direction_option = ttk.Combobox(root, width=12, textvariable=fur_direction)
     fur_direction_option['values'] = ('-1', '上','下', '左', '右')
-    fur_direction_option.grid(row=8, column=3, sticky=tkinter.W)
+    fur_direction_option.grid(row=9, column=3, sticky=tkinter.W)
     fur_direction_option.current(0)
     
-    
+    '''
     custom_area_label = tkinter.Label(root, text='定制区域矢量方向')
-    custom_area_label.grid(row=9,column=2,sticky=tkinter.E)    
+    custom_area_label.grid(row=10,column=2,sticky=tkinter.E)    
     custom_area_vector = tkinter.StringVar()
     custom_area_option = ttk.Combobox(root, width=12, textvariable=custom_area_vector)
-    custom_area_option['values'] = ('-1', '左->右[下]', '右->左[下]','上->下[左]','下->上[左]','左->右[上]', '右->左[上]','上->下[右]','下->上[右]')
-    custom_area_option.grid(row=9, column=3, sticky=tkinter.W)
-    custom_area_option.current(8)    
-    
+    #custom_area_option['values'] = ('-1', '左->右[下]', '右->左[下]','上->下[左]','下->上[左]','左->右[上]', '右->左[上]','上->下[右]','下->上[右]')
+    custom_area_option['values'] = ('-1', '左上角', '右上角','左下角','右下角')
+    custom_area_option.grid(row=10, column=3, sticky=tkinter.W)
+    custom_area_option.current(0)    
+    '''
     
 
     page_idx_label = tkinter.Label(root, text='请求页编号：')
-    page_idx_label.grid(row=10, column=2, sticky=tkinter.E)
+    page_idx_label.grid(row=11, column=2, sticky=tkinter.E)
     page_idx_entry = tkinter.Entry(root)
-    page_idx_entry.grid(row=10, column=3, sticky=tkinter.W)
+    page_idx_entry.grid(row=11, column=3, sticky=tkinter.W)
     page_idx_entry.insert(0, '1')
     
     page_size_label = tkinter.Label(root, text='单页记录数量：')
-    page_size_label.grid(row=11, column=2, sticky=tkinter.E)
+    page_size_label.grid(row=12, column=2, sticky=tkinter.E)
     page_size_entry = tkinter.Entry(root)
-    page_size_entry.grid(row=11, column=3, sticky=tkinter.W)
+    page_size_entry.grid(row=12, column=3, sticky=tkinter.W)
     page_size_entry.insert(0, '35')    
     
     ip_label = tkinter.Label(root, text='服务端IP：')
-    ip_label.grid(row=12, column=2, sticky=tkinter.E)
+    ip_label.grid(row=13, column=2, sticky=tkinter.E)
     host_ip = tkinter.Entry(root)
-    host_ip.grid(row=12,column=3, sticky=tkinter.W)
+    host_ip.grid(row=13,column=3, sticky=tkinter.W)
     #host_ip.insert(0, '192.168.20.78:8088')
     host_ip.insert(0, '127.0.0.1:8088')
     host_info = tkinter.Label(root, text="启动服务端并输入正确的IP地址和端口号！", fg='red')
-    host_info.grid(row=12, column=4,sticky=tkinter.W)
+    host_info.grid(row=13, column=4,sticky=tkinter.W)
     
     obj_dx_label = tkinter.Label(root, text='反馈家具尺寸Dx：')
-    obj_dx_label.grid(row=13, column=0, sticky=tkinter.E)
+    obj_dx_label.grid(row=14, column=0, sticky=tkinter.E)
     obj_dy_label = tkinter.Label(root, text='反馈家具尺寸Dy：')
-    obj_dy_label.grid(row=14, column=0, sticky=tkinter.E)
+    obj_dy_label.grid(row=15, column=0, sticky=tkinter.E)
 
-    dx_scale = tkinter.Scale(root, from_ = 1, to = 5000, orient=tkinter.HORIZONTAL, resolution=10)
-    dx_scale.grid(row=13, column=1, sticky=tkinter.W)
+    dx_scale = tkinter.Scale(root, from_ = 1, to = 5000, orient=tkinter.HORIZONTAL, resolution=50)
+    dx_scale.grid(row=14, column=1, sticky=tkinter.W)
     dx_scale.set(1000)    
     
-    dy_scale = tkinter.Scale(root, from_ = 1, to = 5000, orient=tkinter.HORIZONTAL, resolution=10)
-    dy_scale.grid(row=14, column=1, sticky=tkinter.W)    
+    dy_scale = tkinter.Scale(root, from_ = 1, to = 5000, orient=tkinter.HORIZONTAL, resolution=50)
+    dy_scale.grid(row=15, column=1, sticky=tkinter.W)    
     dy_scale.set(1000)
     
+    '''
+    rect_label1 = tkinter.Label(root, text='矩形区域：')
+    rect_label1.grid(row=14, column=2, sticky=tkinter.E)
+    rect_show1 = tkinter.Entry(root)
+    rect_show1.grid(row=14,column=3, sticky=tkinter.W)
+    '''
     
     
     split_label = tkinter.Label(root)
-    split_label.grid(row=15, column=0, columnspan=5)
+    split_label.grid(row=16, column=0, columnspan=5)
     split_label.configure(text=split_line)
     '''
     feedback_pos = {}
@@ -680,7 +730,8 @@ if __name__ == '__main__':
     room_fb_flag={}     #记录某个room是否反馈过
     response_text = {}  #记录当前room的详细信息
     feedback_list = []
-        
+    rect_x = []
+    rect_y = []       
     
 
     #启动事件循环

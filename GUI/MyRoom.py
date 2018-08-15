@@ -145,6 +145,7 @@ class RoomMeta:
     
     '''生成门窗模式'''
     def getDoorWindowPattern(self, obj_num, obj_pos, obj_type):
+        window_flag = (obj_type == 2)
     
         for i in range(obj_num):       
             
@@ -162,7 +163,10 @@ class RoomMeta:
                 #平行于x轴, side = 2  or side= 4
                 if delta_x > 1000 and obj_type == 1:
                     obj_type += 1
-                side = MyUtils.getSideOrder(center_x, center_y, 0)
+                if window_flag:
+                    side = MyUtils.getWindowSideOrder(center_x, center_y, self.wall_xmin, self.wall_xmax, self.wall_ymin, self.wall_ymax)
+                else:
+                    side = MyUtils.getSideOrder(center_x, center_y, 0)
                 
                 if obj_type == 1:
                     self.door_size_ratio[side - 1] = delta_x * 1.0 / self.shape_dx
@@ -192,7 +196,10 @@ class RoomMeta:
                 #平行于y轴
                 if delta_y > 1000 and obj_type == 1:
                     obj_type += 1
-                side = MyUtils.getSideOrder(center_x, center_y, 1)
+                if window_flag:
+                    side = MyUtils.getWindowSideOrder(center_x, center_y, self.wall_xmin, self.wall_xmax, self.wall_ymin, self.wall_ymax)
+                else:
+                    side = MyUtils.getSideOrder(center_x, center_y, 1)
                 
                 if obj_type == 1:
                     self.door_size_ratio[side - 1] = delta_y * 1.0 / self.shape_dy
@@ -268,6 +275,20 @@ class RoomMeta:
                         
                         if len(new_free_wall) == 1:
                             break
+                        
+        if len(new_free_wall) > 1:
+            for ikey, ivalue in self.pattern.items():
+                if ikey != 0:
+                    if 2 in ivalue:  
+                        pre_wall = MyUtils.getPreWall(ikey)   
+                        post_wall = MyUtils.getPostWall(ikey) 
+                        tmp = []
+                        if pre_wall in new_free_wall:
+                            tmp.append(pre_wall)
+                            return tmp
+                        elif post_wall in new_free_wall:
+                            tmp.append(post_wall)
+                            return tmp                       
                         
         return new_free_wall
     
@@ -480,8 +501,68 @@ class RoomMeta:
                     positive_y_walls.append(cur_wall)
                 else:
                     negative_y_walls.append(cur_wall)
-                
+        
+        self.connectWalls(positive_x_walls, 0)
+        self.connectWalls(negative_x_walls, 0)
+        self.connectWalls(positive_y_walls, 1)
+        self.connectWalls(negative_y_walls, 1)
         return positive_x_walls, negative_x_walls, positive_y_walls, negative_y_walls
+    
+    def checkConnectXWalls(self, walls):
+        num = len(walls)
+        tmp = []
+        for i in range(num-1):
+                wall1 = walls[i]
+                for j in range(i+1, num):
+                    wall2 = walls[j]
+                    if wall1.canConnect(wall2):
+                        y = wall1.getStartY()
+                        xmin = min(wall1.getMinX(), wall2.getMinX())
+                        xmax = max(wall1.getMaxX(), wall2.getMaxX())
+                        newWall = MyWall.LinearWall(MyPoint.Point(xmin,y), MyPoint.Point(xmax,y))
+                        tmp.append(wall1)
+                        tmp.append(wall2)
+                        tmp.append(newWall)
+                        return tmp
+        return tmp
+    
+    def checkConnectYWalls(self, walls):
+        num = len(walls)
+        tmp = []
+        for i in range(num-1):
+                wall1 = walls[i]
+                for j in range(i+1, num):
+                    wall2 = walls[j]
+                    if wall1.canConnect(wall2):
+                        x = wall1.getStartX()
+                        ymin = min(wall1.getMinY(), wall2.getMinY())
+                        ymax = max(wall1.getMaxY(), wall2.getMaxY())
+                        newWall = MyWall.LinearWall(MyPoint.Point(x,ymin), MyPoint.Point(x,ymax))
+                        tmp.append(wall1)
+                        tmp.append(wall2)
+                        tmp.append(newWall)
+                        return tmp
+        return tmp
+        
+    def connectWalls(self, walls, direction): 
+        for i in range(len(walls)):
+            walls[i].showDetail()
+        if direction == 0:
+            result = self.checkConnectXWalls(walls)
+            while len(result) != 0:
+                walls.remove(result[0])
+                walls.remove(result[1])
+                walls.append(result[2])
+                result = self.checkConnectXWalls(walls)
+        elif direction == 1:
+            result = self.checkConnectYWalls(walls)
+            while len(result) != 0:
+                walls.remove(result[0])
+                walls.remove(result[1])
+                walls.append(result[2])
+                result = self.checkConnectYWalls(walls)
+                        
+                
     
     
     def analyzeDoorInWall(self, wall):    

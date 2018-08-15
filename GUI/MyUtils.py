@@ -48,6 +48,19 @@ def getSideOrder(x, y, direction):
         else:
             return 0  
         
+def getWindowSideOrder(x, y, wall_xmin, wall_xmax, wall_ymin, wall_ymax):
+    if y > wall_ymax:
+        return 4
+    elif y < wall_ymin:
+        return 2
+    elif x < wall_xmin:
+        return 3
+    elif x > wall_xmax:
+        return 1
+    else:
+        return 0
+   
+        
 def getPreWall(cur_wall):
     pre_wall = cur_wall - 1
     if pre_wall == 0:

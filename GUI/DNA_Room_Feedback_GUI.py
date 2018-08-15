@@ -391,7 +391,7 @@ def onPress(event):
     updateRotationByObjDirection()
         
     
-    canvas.show()
+    canvas.draw()
   
 
 def onMotion(event):
@@ -507,7 +507,7 @@ def drawDNA(response_text):
                     
         
         
-        #家具位置预测 
+        #家具位置预测    
         '''
         room_meta = MyRoom.RoomMeta(shape_point_num, shape_pos, wall_num, wall_pos, door_num, door_pos, window_num, window_pos)
         x_range = room_meta.getShapeDx();

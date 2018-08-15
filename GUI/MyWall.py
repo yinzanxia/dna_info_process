@@ -119,5 +119,48 @@ class LinearWall:
             return False
         
         
+    def canConnect(self, wall):
+        if self.isYWall():
+            if self.getStartX() != self.getEndX():
+                return False
+            
+            if wall.isYWall() == False:
+                return False
+            
+            if wall.getStartX() != wall.getEndX():
+                return False
+            
+            if self.getStartX() != wall.getStartX():
+                return False
+            
+            if self.getStartY() == wall.getEndY():
+                return True
+            
+            if self.getEndY() == wall.getStartY():
+                return True
+            
+        elif self.isXWall():
+            if self.getStartY() != self.getEndY():
+                return False
+            
+            if wall.isXWall() == False:
+                return False
+            
+            if wall.getStartY() != wall.getEndY():
+                return False
+            
+            if self.getStartY() != wall.getStartY():
+                return False
+            
+            if self.getStartX() == wall.getEndX():
+                return True
+            
+            if self.getEndX() == wall.getStartX():
+                return True
+            
+        else:
+            return False
+        
+        
     
     

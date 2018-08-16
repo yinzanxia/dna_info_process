@@ -104,7 +104,7 @@ def resetForRoomDetail():
 
 
 '''获取选中的Room的详细信息 ''' 
-def getRoomInfo():
+def getRoomInfo(event):
     global response_text
     if isRoomListSelected(room_lb) == False:
         msgbox.showerror("Error", "请批量导入Room列表并选中一个Room!")
@@ -281,8 +281,14 @@ def feedBack():
             updateRotationByObjDirection()
             cur_id = RoomResponse.getIdFromShowText(cur_room_info_label["text"])       
             cur_id_num = int(cur_id[3:])
-            msg = cur_id + '反馈位置： [category'  + fur_option.get() +'] '
-            postition = '(x:' + x_input.get() + ', y:' + y_input.get() + ', z:' + z_input.get() + ', rotation:' + rotation_input.get() + ')'
+            msg = cur_id
+            if (len(rect_x) != 2):
+                msg = msg + '反馈位置： [category'  + fur_option.get() +'] '
+                postition = '(x:' + x_input.get() + ', y:' + y_input.get() + ', z:' + z_input.get() + ', rotation:' + rotation_input.get() + ')'
+            else:
+                msg = msg + '反馈区域： [category'  + fur_option.get() +'] '
+                postition = '(x:[%f,%f], y:[%f,%f], rotation:%s)' % (min(rect_x), max(rect_x), min(rect_y),max(rect_y),rotation_input.get())                
+            
             msg = msg + postition + ' success!'
             #feedback_pos[fur_input.get()] = postition      
             room_fb_flag[cur_id_num] = True
@@ -334,24 +340,7 @@ def showFeedBackList():
     print(feedback_list)
     msgbox.showinfo("Info", feedback_list)
     
-'''
-def enableLocationButtons():
-    fur_option.configure(state=tkinter.NORMAL)
-    fur_direction_option.configure(state=tkinter.NORMAL)
-    x_input.configure(state=tkinter.NORMAL)
-    y_input.configure(state=tkinter.NORMAL)
-    z_input.configure(state=tkinter.NORMAL)
-    rotation_input.configure(state=tkinter.NORMAL)
-    
-def disableLocationButtons():
-    fur_option.configure(state=tkinter.DISABLED)
-    fur_direction_option.configure(state=tkinter.DISABLED)
-    x_input.configure(state=tkinter.DISABLED)
-    y_input.configure(state=tkinter.DISABLED)
-    z_input.configure(state=tkinter.DISABLED)
-    rotation_input.configure(state=tkinter.DISABLED)  
 
-'''
 def pointRectGrow():
     return
 
@@ -574,13 +563,14 @@ if __name__ == '__main__':
         room_lb.insert(tkinter.END,item)    
     room_lb.select_set(0)    
     room_lb.grid(row=1,column=0, rowspan=5)
+    room_lb.bind('<Double-Button-1>', getRoomInfo)
 
     
     #请求按钮
     tkinter.Button(root,text='请求Room列表',command=requestRoomList).grid(row=1,column=1, sticky=tkinter.E+tkinter.W)   
-    tkinter.Button(root,text='获取选中Room信息',command=getRoomInfo).grid(row=2,column=1, sticky=tkinter.E+tkinter.W)
+    #tkinter.Button(root,text='获取选中Room信息',command=getRoomInfo).grid(row=2,column=1, sticky=tkinter.E+tkinter.W)
     #tkinter.Button(root,text='绘制选中Room',command=drawDNA).grid(row=3,column=1, sticky=E+W)   
-    tkinter.Button(root,text='*反馈家具位置/定制区域*',command=feedBack).grid(row=3,column=1, sticky=tkinter.E+tkinter.W)    
+    tkinter.Button(root,text='保存反馈信息',command=feedBack).grid(row=2,column=1, sticky=tkinter.E+tkinter.W)    
     tkinter.Button(root,text='查看已反馈的Room', command=showFeedBackList, state=tkinter.DISABLED).grid(row=4,column=1,sticky=tkinter.E+tkinter.W)
     tkinter.Button(root,text='区域生长', command=pointRectGrow, state=tkinter.DISABLED).grid(row=5,column=1,sticky=tkinter.E+tkinter.W)
     
@@ -608,8 +598,8 @@ if __name__ == '__main__':
     
     feedback_mode = tkinter.IntVar()
     feedback_mode.set(1)
-    tkinter.Radiobutton(root, variable = feedback_mode, text='反馈点', value=1).grid(row=7, column=2)
-    tkinter.Radiobutton(root, variable = feedback_mode, text='反馈区域', value=2).grid(row=7, column=3)
+    tkinter.Radiobutton(root, variable = feedback_mode, text='反馈家具位置（中心点+尺寸）', value=1).grid(row=7, column=2)
+    tkinter.Radiobutton(root, variable = feedback_mode, text='反馈定制区域（定制区域）', value=2).grid(row=7, column=3)
     
     split_label = tkinter.Label(root)
     split_label.grid(row=8, column=0, columnspan=5)
@@ -627,8 +617,7 @@ if __name__ == '__main__':
     fur_option = ttk.Combobox(root, width=12, textvariable=fur_type)
     fur_option['values'] = ('-1', '318-床', '120-移门衣柜','115-榻榻米', '40-儿童床', '301-沙发','323-梳妆台', '310-餐桌' , '330-书桌/工作台','114-书桌','355-坐便器','342-浴室柜','350-卫生间淋浴')
     fur_option.grid(row=9, column=1, sticky=tkinter.W)
-    fur_option.current(0)
-    
+    fur_option.current(0)    
     
     
     x_label = tkinter.Label(root, text='x：')
@@ -704,11 +693,11 @@ if __name__ == '__main__':
 
     dx_scale = tkinter.Scale(root, from_ = 1, to = 5000, orient=tkinter.HORIZONTAL, resolution=50)
     dx_scale.grid(row=14, column=1, sticky=tkinter.W)
-    dx_scale.set(1000)    
+    dx_scale.set(100)    
     
     dy_scale = tkinter.Scale(root, from_ = 1, to = 5000, orient=tkinter.HORIZONTAL, resolution=50)
     dy_scale.grid(row=15, column=1, sticky=tkinter.W)    
-    dy_scale.set(1000)
+    dy_scale.set(100)
     
     '''
     rect_label1 = tkinter.Label(root, text='矩形区域：')

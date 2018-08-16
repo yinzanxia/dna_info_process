@@ -77,14 +77,17 @@ def getExpList(detail_room_response_text):
                 if type(cur_data) is list:
                     for i in range(len(cur_data)):
                         cur_obj = cur_data[i]
-                        #print(cur_obj)
+                        print(cur_obj)
                         if cur_obj["categoryId"] not in pos:
                             pos[cur_obj["categoryId"]] = []
                             
-                        location = decodeExp(cur_obj["expression"])
+                        if '-ssc' in cur_obj["expression"]:
+                            location = decodeExpWithSpecialArea(cur_obj["expression"])
+                        else:
+                            location = decodeExp(cur_obj["expression"])
                         dx = cur_obj['objDx']
                         dy = cur_obj['objDy']
-                        if len(location) > 0:
+                        if len(location) == 3:
                             tmp = {}
                             tmp['x'] = location[0]
                             tmp['y'] = location[1]
@@ -95,6 +98,43 @@ def getExpList(detail_room_response_text):
                         
     
     return pos;
+
+
+'''解析表达式'''
+#"-0.9698635655656643,-0.9523809523809524,0|0,0,0|0.0,0.0,-90.0|-s 1.0,1.0,1.0 -ssc -0.9698635655656643,-0.9619047619047619,0#-0.5969199439064733,-0.07142857142857126,0"
+def decodeExpWithSpecialArea(exp_str): 
+    index = exp_str.index('-ssc ')
+    if index <= -1:
+        return []
+    
+    rect_str = exp_str[index+len('-ssc '):]
+    if rect_str.index('#') <= -1:
+        return []
+    point_str = rect_str.split('#')
+    if len(point_str) != 2:
+        return []
+
+    min_point = point_str[0].split(',')
+    max_point = point_str[1].split(',')
+    if len(min_point) != 3:
+        return []
+    if len(max_point) != 3:
+        return []
+    print(exp_str, min_point, max_point)
+    location = []    
+    x = (float(min_point[0]) + float(max_point[0])) / 2.0
+    y = (float(min_point[1]) + float(max_point[1])) / 2.0
+    #z = float(min_point[2]) + float(max_point[2]) / 2.0
+    z = 0
+    location.append(x)
+    location.append(y)
+    location.append(z)
+    print(location)
+       
+    return location                                
+                               
+    
+  
 
 
 def recoverPositionPoint(pos, x_range, y_range):

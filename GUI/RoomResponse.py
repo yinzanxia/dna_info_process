@@ -77,6 +77,7 @@ def getExpList(detail_room_response_text):
                 if type(cur_data) is list:
                     for i in range(len(cur_data)):
                         cur_obj = cur_data[i]
+                        #print(cur_obj)
                         if cur_obj["categoryId"] not in pos:
                             pos[cur_obj["categoryId"]] = []
                             

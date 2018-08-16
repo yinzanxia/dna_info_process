@@ -234,13 +234,15 @@ def prepareFeedback():
     rotation = 0 - float(rotation_input.get())
     
     obj_name = fur_option.get()
-    if obj_name == '定制区域':
+    if len(rect_x) == 2:
+        obj_name_list = obj_name.split('-')
+        obj_name = obj_name_list[1]
         search_idx = isObjCategoryFeedbacked(obj_name)
         if search_idx != -1:
             aijia_feedback = feedback_list[search_idx]
         else:
             aijia_feedback = {}
-        aijia_feedback["categoryId"] = 0    
+        aijia_feedback["categoryId"] = int(obj_name_list[0])   
         dx = max(rect_x) - min(rect_x)
         dy = max(rect_y) - min(rect_y)
         prepareSpecialAreaFeedBack(aijia_feedback, center_x, center_y, dx, dy) 
@@ -272,10 +274,7 @@ def feedBack():
         
     if  fur_option.get() == '-1':
         msgbox.showerror("Error", "请选择正确的家具类型ID!")
-        return
-    elif fur_option.get() == "定制区域" and len(rect_x) != 2:       
-        msgbox.showerror("Error", "未设置定制区域")
-        return
+        return    
     else:  
             
         try:
@@ -288,16 +287,16 @@ def feedBack():
             #feedback_pos[fur_input.get()] = postition      
             room_fb_flag[cur_id_num] = True
                   
-            prepareFeedback()  
-            if fur_option.get() == "定制区域":
-                print(feedback_list)                
+            prepareFeedback()             
+            print(feedback_list)                
             
             my_url = 'http://'+ host_ip.get() + '/ai/room/feedback/update/' + RoomResponse.getRidFromResp(response_text)      
             headers={'content-type':'application/json'}
             my_data = json.dumps(feedback_list)
             post_r = requests.post(my_url,headers=headers, data=my_data)   
             
-            '''记录到本地文件中'''            
+            '''记录到本地文件中'''
+            '''            
             filename = 'feedback_record.txt'
             with open(filename, 'a') as f:
                 record_list = []
@@ -307,11 +306,14 @@ def feedBack():
                 f.write(record_str)
                 f.write('\n')
                 f.close()
+            '''
             fur_option.current(0)
             fur_direction_option.current(0)
             
             msgbox.showinfo("Info", msg)  
             resetForRoomDetail()
+            rect_x.clear()
+            rect_y.clear()
             
         except:
             fur_option.current(0)
@@ -623,7 +625,7 @@ if __name__ == '__main__':
 
     fur_type = tkinter.StringVar()
     fur_option = ttk.Combobox(root, width=12, textvariable=fur_type)
-    fur_option['values'] = ('-1', '定制区域', '318-床', '120-移门衣柜','115-榻榻米', '40-儿童床', '301-沙发','323-梳妆台', '310-餐桌' , '330-书桌/工作台','114-书桌','355-坐便器','342-浴室柜','350-卫生间淋浴')
+    fur_option['values'] = ('-1', '318-床', '120-移门衣柜','115-榻榻米', '40-儿童床', '301-沙发','323-梳妆台', '310-餐桌' , '330-书桌/工作台','114-书桌','355-坐便器','342-浴室柜','350-卫生间淋浴')
     fur_option.grid(row=9, column=1, sticky=tkinter.W)
     fur_option.current(0)
     

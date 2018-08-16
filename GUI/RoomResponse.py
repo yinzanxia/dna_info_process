@@ -82,20 +82,31 @@ def getExpList(detail_room_response_text):
                             pos[cur_obj["categoryId"]] = []
                             
                         if '-ssc' in cur_obj["expression"]:
-                            location = decodeExpWithSpecialArea(cur_obj["expression"])
-                        else:
                             location = decodeExp(cur_obj["expression"])
-                        dx = cur_obj['objDx']
-                        dy = cur_obj['objDy']
-                        if len(location) == 3:
+                            rect = decodeExpWithSpecialArea(cur_obj["expression"])
                             tmp = {}
+                            tmp['isArea'] = 1
                             tmp['x'] = location[0]
                             tmp['y'] = location[1]
                             tmp['z'] = location[2]
-                            tmp['dx'] = dx
-                            tmp['dy'] = dy
+                            tmp['xmin'] = rect[0]
+                            tmp['ymin'] = rect[1]
+                            tmp['xmax'] = rect[2]
+                            tmp['ymax'] = rect[3]
                             pos[cur_obj["categoryId"]].append(tmp)
-                        
+                        else:
+                            location = decodeExp(cur_obj["expression"])
+                            dx = cur_obj['objDx']
+                            dy = cur_obj['objDy']
+                            if len(location) == 3:
+                                tmp = {}
+                                tmp['isArea'] = 0
+                                tmp['x'] = location[0]
+                                tmp['y'] = location[1]
+                                tmp['z'] = location[2]
+                                tmp['dx'] = dx
+                                tmp['dy'] = dy
+                                pos[cur_obj["categoryId"]].append(tmp)                        
     
     return pos;
 
@@ -120,18 +131,11 @@ def decodeExpWithSpecialArea(exp_str):
         return []
     if len(max_point) != 3:
         return []
-    print(exp_str, min_point, max_point)
-    location = []    
-    x = (float(min_point[0]) + float(max_point[0])) / 2.0
-    y = (float(min_point[1]) + float(max_point[1])) / 2.0
-    #z = float(min_point[2]) + float(max_point[2]) / 2.0
-    z = 0
-    location.append(x)
-    location.append(y)
-    location.append(z)
-    print(location)
+   
+    #  xmin, ymin, xmax, ymax
+    rect = [float(min_point[0]), float(min_point[1]), float(max_point[0]), float(max_point[1])]      
        
-    return location                                
+    return rect                                
                                
     
   
@@ -144,13 +148,28 @@ def recoverPositionPoint(pos, x_range, y_range):
         recover_position[i_key] = []
         for i in range(len(i_value)):
             cur_pos = i_value[i]
-            tmp = {}
-            tmp['x'] = cur_pos['x'] * x_range / 2.0
-            tmp['y'] = cur_pos['y'] * y_range / 2.0
-            tmp['z'] = cur_pos['z']
-            tmp['dx'] = cur_pos['dx']
-            tmp['dy'] = cur_pos['dy']
-            recover_position[i_key].append(tmp)
+            if 'isArea' in cur_pos:
+                if cur_pos['isArea'] == 0:
+                    tmp = {}
+                    tmp['isArea'] = 0
+                    tmp['x'] = cur_pos['x'] * x_range / 2.0
+                    tmp['y'] = cur_pos['y'] * y_range / 2.0
+                    tmp['z'] = cur_pos['z']
+                    tmp['dx'] = cur_pos['dx']
+                    tmp['dy'] = cur_pos['dy']
+                    recover_position[i_key].append(tmp)
+                elif cur_pos['isArea'] == 1:
+                    tmp = {}
+                    tmp['isArea'] = 1
+                    tmp['x'] = cur_pos['x'] * x_range / 2.0
+                    tmp['y'] = cur_pos['y'] * y_range / 2.0
+                    tmp['z'] = cur_pos['z']
+                    tmp['xmin'] = cur_pos['xmin'] * x_range / 2.0
+                    tmp['ymin'] = cur_pos['ymin'] * y_range / 2.0
+                    tmp['xmax'] = cur_pos['xmax'] * x_range / 2.0
+                    tmp['ymax'] = cur_pos['ymax'] * y_range / 2.0
+                    
+                    recover_position[i_key].append(tmp)
             
     return recover_position
         

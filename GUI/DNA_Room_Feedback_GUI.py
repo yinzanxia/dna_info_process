@@ -494,7 +494,8 @@ def drawDNA(response_text):
         idx = 0
         for i_key, i_value in pos.items():
             if i_key == 0:
-                continue
+                continue            
+            
             cur_color = obj_color[idx % len(obj_color)]
             cur_marker = obj_marker[idx % len(obj_marker)]
             idx += 1
@@ -506,28 +507,44 @@ def drawDNA(response_text):
             dna_plt.scatter(x, y, marker=cur_marker, color=cur_color, label=str(i_key))  
             
             for i in range(len(i_value)):
-                x = []
-                y = []
-                center_x = i_value[i]['x']
-                center_y = i_value[i]['y']
-                dx = i_value[i]['dx']
-                dy = i_value[i]['dy']
-                x.append(center_x - dx/2)
-                x.append(center_x + dx/2)                
-                x.append(center_x + dx/2)
-                x.append(center_x - dx/2)
-                y.append(center_y + dy/2)
-                y.append(center_y + dy/2)
-                y.append(center_y - dy/2)
-                y.append(center_y - dy/2) 
-                
-                x.append(center_x - dx/2)
-                y.append(center_y + dy/2)
-                dna_plt.plot(x, y, color=cur_color, linewidth='0.8', alpha=0.5) 
+                if 'isArea' in i_value[i] and i_value[i]['isArea'] == 0:
+                    x = []
+                    y = []
+                    center_x = i_value[i]['x']
+                    center_y = i_value[i]['y']
+                    dx = i_value[i]['dx']
+                    dy = i_value[i]['dy']
+                    x.append(center_x - dx/2)
+                    x.append(center_x + dx/2)                
+                    x.append(center_x + dx/2)
+                    x.append(center_x - dx/2)
+                    y.append(center_y + dy/2)
+                    y.append(center_y + dy/2)
+                    y.append(center_y - dy/2)
+                    y.append(center_y - dy/2) 
+                    
+                    x.append(center_x - dx/2)
+                    y.append(center_y + dy/2)
+                    dna_plt.plot(x, y, color=cur_color, linewidth='0.8', alpha=0.5) 
+                if 'isArea' in i_value[i] and i_value[i]['isArea'] == 1:
+                    x = []
+                    y = []
+                    x.append(i_value[i]['xmin'])
+                    x.append(i_value[i]['xmin'])
+                    x.append(i_value[i]['xmax'])
+                    x.append(i_value[i]['xmax'])
+                    y.append(i_value[i]['ymin'])
+                    y.append(i_value[i]['ymax'])
+                    y.append(i_value[i]['ymax'])
+                    y.append(i_value[i]['ymin'])
+                    
+                    x.append(i_value[i]['xmin'])
+                    y.append(i_value[i]['ymin'])
+                    dna_plt.plot(x, y, color=cur_color, linewidth='0.8', alpha=0.5) 
         
         handles, labels = dna_plt.get_legend_handles_labels()
         dna_plt.legend(handles[::-1], labels[::-1], loc = 1)
-        
+        canvas.draw() 
                     
         
         
@@ -615,11 +632,16 @@ if __name__ == '__main__':
 
     fur_type = tkinter.StringVar()
     fur_option = ttk.Combobox(root, width=12, textvariable=fur_type)
-    fur_option['values'] = ('-1', '318-床', '120-移门衣柜','115-榻榻米', '40-儿童床', '301-沙发','323-梳妆台', '310-餐桌' , '330-书桌/工作台','114-书桌','355-坐便器','342-浴室柜','350-卫生间淋浴')
+    fur_option['values'] = ('-1', '318-床', '120-移门衣柜','115-榻榻米', '40-儿童床',
+                                  '301-沙发','323-梳妆台', '310-餐桌' , '330-书桌/工作台',
+                                  '355-坐便器','342-浴室柜','350-卫生间淋浴',
+                                  '105-定制家具','106-餐边柜','107-厨柜','109-吊柜',
+                                  '111-平开门衣柜', '113-书柜','114-书桌','116-卫浴柜',
+                                  '117-洗衣柜','118-玄关柜','119-阳台收纳柜','152-灶台',
+                                  '153-烟机','154-集成灶','306-玄关柜','307-鞋柜','312-酒柜')
     fur_option.grid(row=9, column=1, sticky=tkinter.W)
     fur_option.current(0)    
-    
-    
+        
     x_label = tkinter.Label(root, text='x：')
     x_label.grid(row=10, column=0, sticky=tkinter.E)
     x_input = tkinter.Entry(root)

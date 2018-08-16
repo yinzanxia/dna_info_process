@@ -390,6 +390,7 @@ def onPress(event):
         if len(rect_x) == 1:
             dna_plt.plot(event.xdata, event.ydata, '+')  
         elif len(rect_x) == 2:
+            dna_plt.plot(event.xdata, event.ydata, '+')
             x = []
             y = []
             x.append(rect_x[0])
@@ -466,6 +467,8 @@ def drawDNA(response_text):
     dna_plt.grid(which='major', axis='y', linewidth=0.75, linestyle='--', color='0.75')
     dna_plt.grid(which='minor', axis='y', linewidth=0.25, linestyle='--', color='0.75')
     
+    
+    
     canvas.draw() 
     
     ''' 异形区域检测调试 '''   
@@ -482,7 +485,7 @@ def drawDNA(response_text):
     
     
     if True: #RoomResponse.isBedroom(response_text):
-        x_range, y_range = RoomResponse.getRange(shape_point_num, shape_pos)        
+        x_range, y_range, vmin, vmax = RoomResponse.getRange(shape_point_num, shape_pos)        
         
         pos_exp = RoomResponse.getExpList(response_text)
         pos = RoomResponse.recoverPositionPoint(pos_exp, x_range, y_range)
@@ -544,6 +547,8 @@ def drawDNA(response_text):
         
         handles, labels = dna_plt.get_legend_handles_labels()
         dna_plt.legend(handles[::-1], labels[::-1], loc = 1)
+        dna_plt.set_xlim([vmin-500, vmax+500])        
+        dna_plt.set_ylim([vmin-500, vmax+500])
         canvas.draw() 
                     
         
@@ -599,7 +604,7 @@ if __name__ == '__main__':
     
 
     #在Tk的GUI上放置一个画布，并用.grid()来调整布局
-    fig = Figure(figsize=(8,6), dpi=100) 
+    fig = Figure(figsize=(7,6), dpi=100) 
     dna_plt = fig.add_subplot(111)
     canvas = FigureCanvasTkAgg(fig, master=root)  
     #canvas.show() 

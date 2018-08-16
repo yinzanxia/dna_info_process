@@ -377,5 +377,5 @@ def getRange(shape_point_num, shape_pos):
         shape_dx = x_max - x_min
         shape_dy = y_max - y_min       
        
-        return shape_dx, shape_dy;
+        return shape_dx, shape_dy, min(x_min, y_min), max(x_max, y_max);
                 

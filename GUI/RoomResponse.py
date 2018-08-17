@@ -379,3 +379,41 @@ def getRange(shape_point_num, shape_pos):
        
         return shape_dx, shape_dy, min(x_min, y_min), max(x_max, y_max);
                 
+
+categoryMap = {}
+categoryMap[318] = '床'
+categoryMap[115] = '榻榻米'
+categoryMap[120] = '移门衣柜'
+categoryMap[111] = '平开门衣柜'
+categoryMap[40] = '儿童床'
+categoryMap[301] = '沙发'
+categoryMap[323] = '梳妆台'
+categoryMap[310] = '餐桌'
+categoryMap[330] = '书桌/工作台'
+categoryMap[355] = '坐便器'
+categoryMap[342] = '浴室柜'
+categoryMap[350] = '卫生间淋浴'
+categoryMap[105] = '定制家具'
+categoryMap[106] = '餐边柜'
+categoryMap[107] = '厨柜'
+categoryMap[109] = '吊柜'
+categoryMap[113] = '书柜'
+categoryMap[114] = '书桌'
+categoryMap[116] = '卫浴柜'
+categoryMap[117] = '洗衣柜'
+categoryMap[118] = '玄关柜'
+categoryMap[119] = '阳台收纳柜'                                  
+categoryMap[152] = '灶台'
+categoryMap[153] = '烟机'
+categoryMap[154] = '集成灶'                                 
+categoryMap[306] = '玄关柜'    
+categoryMap[307] = '鞋柜'    
+categoryMap[312] = '酒柜'       
+
+def getCategoryNameById(categoryId):
+    global categoryMap
+    if categoryId in categoryMap:
+        return categoryMap[categoryId]
+    else:
+        return '未知'
+    

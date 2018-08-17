@@ -5,20 +5,6 @@ Created on Tue Jul 24 10:54:40 2018
 @author: mayn
 """
 
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Jul 23 09:38:10 2018
-
-@author: mayn
-"""
-
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Jul 23 09:13:56 2018
-
-@author: mayn
-"""
-
 #import numpy as np
 import tkinter
 #from tkinter import *
@@ -28,6 +14,7 @@ from tkinter import ttk
 #import matplotlib
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from pylab import mpl
 #from matplotlib.widgets import Cursor
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -446,7 +433,11 @@ def drawDNA(response_text):
     '''画图'''
     #清空图像，以使得前后两次绘制的图像不会重叠
     #plt.style.use('ggplot')      
-    dna_plt.clear()      
+    dna_plt.clear()  
+    mpl.rcParams['font.sans-serif'] = ['FangSong'] # 指定默认字体
+    mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显示为方块的问题
+    #dna_plt.rcParams['font.sans-serif']=['SimHei'] #用来正常显示中文标签
+    #dna_plt.rcParams['axes.unicode_minus']=False #用来正常显示负号    
         
     dna_plt.plot(shape_pos['x'], shape_pos['y'], linewidth='0.5', color='k')  
     dna_plt.plot(wall_pos['x'], wall_pos['y'], linewidth='0.5', color='b')   
@@ -507,7 +498,8 @@ def drawDNA(response_text):
             for i in range(len(i_value)):
                 x.append(i_value[i]['x'])
                 y.append(i_value[i]['y'])
-            dna_plt.scatter(x, y, marker=cur_marker, color=cur_color, label=str(i_key))  
+            #dna_plt.scatter(x, y, marker=cur_marker, color=cur_color, label=str(i_key)) 
+            dna_plt.scatter(x, y, marker=cur_marker, color=cur_color, label=RoomResponse.getCategoryNameById(i_key)) 
             
             for i in range(len(i_value)):
                 if 'isArea' in i_value[i] and i_value[i]['isArea'] == 0:
@@ -543,6 +535,10 @@ def drawDNA(response_text):
                     
                     x.append(i_value[i]['xmin'])
                     y.append(i_value[i]['ymin'])
+                    
+                    rect = mpatches.Polygon([[1, 1], [1, 1], [1, 1]], facecolor=cur_color, alpha=0.1)
+                    rect.set_xy(list(zip(x,y)))  
+                    dna_plt.add_patch(rect)
                     dna_plt.plot(x, y, color=cur_color, linewidth='0.8', alpha=0.5) 
         
         handles, labels = dna_plt.get_legend_handles_labels()
@@ -637,13 +633,14 @@ if __name__ == '__main__':
 
     fur_type = tkinter.StringVar()
     fur_option = ttk.Combobox(root, width=12, textvariable=fur_type)
-    fur_option['values'] = ('-1', '318-床', '120-移门衣柜','115-榻榻米', '40-儿童床',
+    fur_option['values'] = ('-1', '318-床', '120-移门衣柜','118-玄关柜','115-榻榻米', 
+                                  '306-玄关柜','307-鞋柜','111-平开门衣柜',
                                   '301-沙发','323-梳妆台', '310-餐桌' , '330-书桌/工作台',
-                                  '355-坐便器','342-浴室柜','350-卫生间淋浴',
+                                  '355-坐便器','342-浴室柜','350-卫生间淋浴','40-儿童床',
                                   '105-定制家具','106-餐边柜','107-厨柜','109-吊柜',
-                                  '111-平开门衣柜', '113-书柜','114-书桌','116-卫浴柜',
-                                  '117-洗衣柜','118-玄关柜','119-阳台收纳柜','152-灶台',
-                                  '153-烟机','154-集成灶','306-玄关柜','307-鞋柜','312-酒柜')
+                                  '113-书柜','114-书桌','116-卫浴柜',
+                                  '117-洗衣柜','119-阳台收纳柜','152-灶台',
+                                  '153-烟机','154-集成灶','312-酒柜')
     fur_option.grid(row=9, column=1, sticky=tkinter.W)
     fur_option.current(0)    
         

@@ -541,6 +541,11 @@ class RoomMeta:
                         tmp.append(wall1)
                         tmp.append(wall2)
                         tmp.append(newWall)
+                        print('-------------------------\n')
+                        wall1.showDetail()
+                        wall2.showDetail()
+                        newWall.showDetail()
+                        print('-------------------------\n')
                         return tmp
         return tmp
         
@@ -605,7 +610,33 @@ class RoomMeta:
                 
         return door_range
     
-    
+    def analyzeWindowInWall(self, wall):    
+        door_range = {}
+        door_range['x'] = []
+        door_range['y'] = []
+        
+        if wall.getDirection() == 0:
+            for i in range(self.window_num):
+                door_x = self.window_pos['x'][i]
+                door_y = self.window_pos['y'][i] 
+                x_min, x_max, y_min, y_max = MyUtils.getListLimit(len(door_x), door_x, door_y)                
+                               
+                if abs(y_min - wall.getStartY()) < 100 or abs(y_max - wall.getStartY()) < 100:            
+                    tmp = [x_min, x_max]
+                    door_range['x'].append(tmp)
+                
+            
+        if wall.getDirection() == 1:
+            for i in range(self.window_num):
+                door_x = self.window_pos['x'][i]
+                door_y = self.window_pos['y'][i] 
+                x_min, x_max, y_min, y_max = MyUtils.getListLimit(len(door_x), door_x, door_y)  
+                
+                if abs(x_min - wall.getStartX()) < 100 or abs(x_max - wall.getStartX()) < 100:
+                    tmp = [y_min, y_max]
+                    door_range['y'].append(tmp)       
+                
+        return door_range
     
     '''判断墙是否是边界上的墙，方向和长度, 不考虑到边界的距离，因为边墙有时是分隔墙'''
     def isBoundWall(self, wall) :        
@@ -826,10 +857,13 @@ class RoomMeta:
         elif wall_index == 2:
             virtual_len = self.searchInNegativeXWalls(neg_x_walls, start_align, start_x)                        
         elif wall_index == 4:
-            virtual_len = self.searchInPositiveXWalls(pos_x_walls, start_align, start_x)                               
-                
+            virtual_len = self.searchInPositiveXWalls(pos_x_walls, start_align, start_x)  
                 
         return virtual_len
+    
+    def searchAreaFromPoint(self, startPoint):
+        pos_x_walls, neg_x_walls, pos_y_walls, neg_y_walls = self.groupWalls(startPoint)
+        return
     
     def generateWardrobePointByPrediction(self, bed_free_wall, bed_align):
         wardrobe = 120
@@ -980,7 +1014,7 @@ class RoomMeta:
     def getObjPosition(self):
         return self.objPosition
     
-    
+
     
     def growToXMin(self, center_point):
         tmp_x = self.wall_xmin
@@ -1002,6 +1036,25 @@ class RoomMeta:
                     wall_len = wall.getLength()
                     
         return tmp_x, wall_len
+    
+    def growToXMin1(self, center_point, neg_y_walls):
+        tmp_x = self.wall_xmin
+        #wall_len = 0
+        wall_index = -1
+        for i in range(len(neg_y_walls)):             
+            cur_wall = neg_y_walls[i]             
+            if cur_wall.isYWall() == False:
+                continue   
+           
+            if cur_wall.isHorizontalLeftOfPoint(center_point):  #平行与Y轴且在点与边界之间
+                if tmp_x < cur_wall.getMaxX():
+                    tmp_x = cur_wall.getMaxX()
+                    #wall_len = cur_wall.getLength()
+                    wall_index = i
+        if wall_index != -1:            
+            return tmp_x, neg_y_walls[wall_index]
+        else:
+            return -1, neg_y_walls[0]
     
 
     def growToXMax(self, center_point):
@@ -1025,6 +1078,26 @@ class RoomMeta:
                     
         return tmp_x, wall_len
     
+    def growToXMax1(self, center_point, pos_y_walls):
+        tmp_x = self.wall_xmax
+        #wall_len = 0
+        wall_index = -1
+        for i in range(len(pos_y_walls)):
+            cur_wall = pos_y_walls[i]             
+            if cur_wall.isYWall() == False:
+                continue
+                       
+            if cur_wall.isHorizontalRightOfPoint(center_point):  #平行与Y轴且在点与边界之间
+                if tmp_x > cur_wall.getMinX():
+                    tmp_x = cur_wall.getMinX()
+                    #wall_len = cur_wall.getLength()
+                    wall_index = i
+                    
+        if wall_index != -1:            
+            return tmp_x, pos_y_walls[wall_index]
+        else:
+            return -1, pos_y_walls[0]
+    
 
     def growToYMin(self, center_point):
         tmp_y = self.wall_ymin
@@ -1045,6 +1118,25 @@ class RoomMeta:
                     tmp_y = wall.getMaxY()
                     wall_len = wall.getLength()
         return tmp_y, wall_len
+    
+    def growToYMin1(self, center_point, neg_x_walls):
+        tmp_y = self.wall_ymin
+        #wall_len = 0
+        wall_index = -1
+        for i in range(len(neg_x_walls)):   
+            wall = neg_x_walls[i]            
+            if wall.isXWall() == False:
+                continue
+                       
+            if wall.isVerticalLowerOfPoint(center_point):  #平行与X轴且在点与边界之间
+                if tmp_y < wall.getMaxY():
+                    tmp_y = wall.getMaxY()
+                    #wall_len = wall.getLength()
+                    wall_index = i;
+        if wall_index != -1:
+            return tmp_y, neg_x_walls[wall_index]
+        else:
+            return -1, neg_x_walls[0]
 
     def growToYMax(self, center_point):
         tmp_y = self.wall_ymax
@@ -1066,15 +1158,76 @@ class RoomMeta:
                     wall_len = wall.getLength()
                     
         return tmp_y, wall_len
-        
     
-    def rectGrow(self, center_x, center_y):
+    def growToYMax1(self, center_point, pos_x_walls):
+        tmp_y = self.wall_ymax
+        #wall_len = 0
+        wall_index = -1
+        for i in range(len(pos_x_walls)): 
+            wall = pos_x_walls[i]            
+            if wall.isXWall() == False:
+                continue
+            
+            if wall.isVerticalHigherOfPoint(center_point):  #平行与Y轴且在点与边界之间
+                if tmp_y > wall.getMinY():
+                    tmp_y =  wall.getMinY()
+                    #wall_len = wall.getLength()
+                    wall_index = i
+                    
+        if wall_index != -1:
+            return tmp_y, pos_x_walls[wall_index]
+        else:
+            return -1, pos_x_walls[0]
+        
+    def checkYWallDoorWindow(self, center_x, center_y, right_wall):
+        door_range_info = self.analyzeDoorInWall(right_wall)
+        window_range_info = self.analyzeWindowInWall(right_wall)
+        right_y_min = right_wall.getMinY()
+        right_y_max = right_wall.getMaxY()
+        if len(door_range_info['y']) > 0:
+            y_min1, y_max1 = MyUtils.getGrowLimitWithDoorOrWindowInWall(center_x, center_y, door_range_info, 1, right_wall.getMinY(), right_wall.getMaxY())
+            if y_min1 == -1 and y_max1 == -1:
+                return -1, -1
+            right_y_min = max(y_min1, right_y_min)
+            right_y_max = min(y_max1, right_y_max)
+        if len(window_range_info['y']) > 0:
+            y_min2, y_max2 = MyUtils.getGrowLimitWithDoorOrWindowInWall(center_x, center_y, window_range_info, 1, right_wall.getMinY(), right_wall.getMaxY())
+            if y_min2 == -1 and y_max2 == -1:
+                return -1, -1
+            right_y_min = max(y_min2, right_y_min)
+            right_y_max = min(y_max2, right_y_max)
+            
+        
+        return right_y_min, right_y_max
+    
+    def checkXWallDoorWindow(self, center_x, center_y, top_wall):
+        door_range_info = self.analyzeDoorInWall(top_wall)
+        window_range_info = self.analyzeWindowInWall(top_wall)
+        top_x_min = top_wall.getMinX()
+        top_x_max = top_wall.getMaxX()
+        if len(door_range_info['x']) > 0:
+            x_min1, x_max1 = MyUtils.getGrowLimitWithDoorOrWindowInWall(center_x, center_y, door_range_info, 0, top_wall.getMinX(), top_wall.getMaxX())
+            if x_min1 == -1 and x_max1 == -1:
+                return -1, -1
+            top_x_min = max(x_min1, top_x_min)
+            top_x_max = min(x_max1, top_x_max)
+        if len(window_range_info['x']) > 0:
+            x_min2, x_max2 = MyUtils.getGrowLimitWithDoorOrWindowInWall(center_x, center_y, window_range_info, 0, top_wall.getMinX(), top_wall.getMaxX())
+            if x_min2 == -1 and x_max2 == -1:
+                return -1, -1
+            top_x_min = max(x_min2, top_x_min)
+            top_x_max = min(x_max2, top_x_max)
+            
+        return top_x_min, top_x_max
+    
+    def rectGrow(self, center_x, center_y, wall_index):
         left = right = center_x
         top = bottom = center_y
         
         startPoint = MyPoint.Point(center_x, center_y)
         
         '''优先向某个方向生长应该检查距离最近的墙的距离而非边界墙的距离'''
+        '''
         if center_x - self.wall_xmin < self.wall_xmax - center_x:
             #优先向x_min方向生长 
             left, wall_len = self.growToXMin(startPoint)        
@@ -1088,9 +1241,129 @@ class RoomMeta:
         else:
             #优先向y_max方向生长        
             top, wall_len = self.growToYMax(startPoint)
-            
-        '''以上完成两个方向上距离墙的搜索'''                
+        '''    
+        '''以上完成两个方向上距离墙的搜索''' 
+        '''
+        left, left_wall_len = self.growToXMin(startPoint) 
+        right, right_wall_len = self.growToXMax(startPoint)
+        bottom, bottom_wall_len = self.growToYMin(startPoint)
+        top, top_wall_len = self.growToYMax(startPoint)    
+        '''
         
+        pos_x_walls, neg_x_walls, pos_y_walls, neg_y_walls = self.groupWalls(MyPoint.Point(center_x, center_y))
+        print("Pos_x_walls:")
+        for i in range(len(pos_x_walls)):
+            pos_x_walls[i].showDetail()
+         
+        print("Neg_x_walls:")
+        for i in range(len(neg_x_walls)):
+            neg_x_walls[i].showDetail()
+            
+        print("Pos_y_walls:")
+        for i in range(len(pos_y_walls)):
+            pos_y_walls[i].showDetail()
+            
+        print("Neg_y_walls:")
+        for i in range(len(neg_y_walls)):
+            neg_y_walls[i].showDetail()
+            
+        left_wall_lst = []
+        right_wall_lst = []
+        top_wall_lst = []
+        bottom_wall_lst = []
+        
+        bottom = self.wall_ymin
+        top = self.wall_ymax
+        left = self.wall_xmin
+        right = self.wall_xmax
+        
+        if len(neg_y_walls) > 0:
+            left, left_wall = self.growToXMin1(startPoint, neg_y_walls) 
+            left_wall_lst.append(left_wall)
+        else:
+            left = self.wall_xmin
+        
+        if len(pos_y_walls) > 0:
+            right, right_wall = self.growToXMax1(startPoint, pos_y_walls)
+            right_wall_lst.append(right_wall)
+        else:
+            right = self.wall_xmax
+        
+        if len(neg_x_walls) > 0:
+            bottom, bottom_wall = self.growToYMin1(startPoint, neg_x_walls)
+            bottom_wall_lst.append(bottom_wall)
+        else:
+            bottom = self.wall_ymin
+        if len(pos_x_walls) > 0:
+            top, top_wall = self.growToYMax1(startPoint, pos_x_walls) 
+            top_wall_lst.append(top_wall)
+        else:
+            top = self.wall_ymax
+
+        if wall_index == 1:
+            if len(right_wall_lst) > 0:
+                bottom, top = self.checkYWallDoorWindow(center_x, center_y, right_wall_lst[0])
+            elif len(left_wall_lst) > 0:
+                bottom, top = self.checkYWallDoorWindow(center_x, center_y, left_wall_lst[0])           
+                
+            
+            if abs(top - top_wall.getMinY()) < 100 and len(top_wall_lst)>0:
+                top_x_min, top_x_max = self.checkXWallDoorWindow(center_x, center_y, top_wall_lst[0])
+                left = max(top_x_min, left)
+                right = min(top_x_max, right)
+                
+            if abs(bottom - bottom_wall.getMaxY()) < 100 and len(bottom_wall_lst)>0:
+                bottom_x_min, bottom_x_max = self.checkXWallDoorWindow(center_x, center_y, bottom_wall_lst[0])
+                left = max(bottom_x_min, left)
+                right = min(bottom_x_max, right)
+            
+        elif wall_index == 2:
+            if len(bottom_wall_lst)>0:
+                left, right = self.checkXWallDoorWindow(center_x, center_y, bottom_wall_lst[0])   
+            elif len(top_wall_lst)>0:
+                left, right = self.checkXWallDoorWindow(center_x, center_y, top_wall_lst[0])   
+            
+            if abs(left -left_wall.getMaxX()) < 100 and len(left_wall_lst)>0:
+                left_y_min, left_y_max = self.checkYWallDoorWindow(center_x, center_y, left_wall_lst[0])
+                top = min(left_y_max, top)
+                bottom = max(left_y_min, bottom)
+            if abs(right - right_wall.getMinX()) < 100 and len(right_wall_lst)>0:
+                right_y_min, right_y_max = self.checkYWallDoorWindow(center_x, center_y, right_wall_lst[0])
+                top = min(top, right_y_max)
+                bottom = max(bottom, right_y_min)
+            
+        elif wall_index == 3:
+            if len(left_wall_lst)>0:
+                bottom, top = self.checkYWallDoorWindow(center_x, center_y, left_wall_lst[0])
+            elif len(right_wall_lst)>0:
+                bottom, top = self.checkYWallDoorWindow(center_x, center_y, right_wall_lst[0])
+            
+            
+            if abs(top - top_wall.getMinY()) < 100 and len(top_wall_lst)>0:
+                top_x_min, top_x_max = self.checkXWallDoorWindow(center_x, center_y, top_wall_lst[0])
+                left = max(top_x_min, left)
+                right = min(top_x_max, right)
+                
+            if abs(bottom - bottom_wall.getMaxY()) < 100 and len(bottom_wall_lst)>0:
+                bottom_x_min, bottom_x_max = self.checkXWallDoorWindow(center_x, center_y, bottom_wall_lst[0])
+                left = max(bottom_x_min, left)
+                right = min(bottom_x_max, right) 
+                
+        elif wall_index == 4:
+            if len(top_wall_lst) > 0:
+                left, right = self.checkXWallDoorWindow(center_x, center_y, top_wall_lst[0])
+            elif len(bottom_wall_lst) > 0:
+                left, right = self.checkXWallDoorWindow(center_x, center_y, bottom_wall_lst[0])
+            
+            if abs(left -left_wall.getMaxX()) < 100 and len(left_wall_lst) > 0:
+                left_y_min, left_y_max = self.checkYWallDoorWindow(center_x, center_y, left_wall_lst[0])
+                top = min(left_y_max, top)
+                bottom = max(left_y_min, bottom)
+            if abs(right - right_wall.getMinX()) < 100 and len(right_wall_lst) > 0:
+                right_y_min, right_y_max = self.checkYWallDoorWindow(center_x, center_y, right_wall_lst[0])
+                top = min(top, right_y_max)
+                bottom = max(bottom, right_y_min)
+                
         return left, right, top, bottom
         
         

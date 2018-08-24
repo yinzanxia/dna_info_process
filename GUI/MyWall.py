@@ -139,6 +139,12 @@ class LinearWall:
             if self.getEndY() == wall.getStartY():
                 return True
             
+            if self.getStartY() == wall.getStartY():
+                return True
+            
+            if self.getEndY() == wall.getEndY():
+                return True
+            
         elif self.isXWall():
             if self.getStartY() != self.getEndY():
                 return False
@@ -156,6 +162,12 @@ class LinearWall:
                 return True
             
             if self.getEndX() == wall.getStartX():
+                return True
+            
+            if self.getStartX() == wall.getStartX():
+                return True
+            
+            if self.getEndX() == wall.getEndX():
                 return True
             
         else:

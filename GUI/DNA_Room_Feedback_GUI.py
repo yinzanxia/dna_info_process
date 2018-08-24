@@ -5,7 +5,7 @@ Created on Tue Jul 24 10:54:40 2018
 @author: mayn
 """
 
-#import numpy as np
+import numpy as np
 import tkinter
 #from tkinter import *
 #from tkinter import filedialog
@@ -15,13 +15,15 @@ from tkinter import ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from pylab import mpl
+from pyheatmap.heatmap import HeatMap
+from mpl_toolkits.mplot3d import Axes3D
 #from matplotlib.widgets import Cursor
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import requests
 import json
 import RoomResponse
-#import MyRoom
+import MyRoom
 
 
 '''请求批量Room列表'''    
@@ -88,17 +90,19 @@ def resetForRoomDetail():
     
     
     feedback_list.clear()
-
-
-'''获取选中的Room的详细信息 ''' 
-def getRoomInfo(event):
+    
+    
+def requestAndDrawRoomInfo(isReDraw):
     global response_text
-    if isRoomListSelected(room_lb) == False:
+    if isRoomListSelected(room_lb) == False and isReDraw == False:
         msgbox.showerror("Error", "请批量导入Room列表并选中一个Room!")
     else:        
         try: 
             #请求数据
-            cur_id = room_lb.get(room_lb.curselection())
+            if isReDraw == True:
+                cur_id = cur_room_id
+            else:
+                cur_id = room_lb.get(room_lb.curselection())
             my_url = 'http://'+ host_ip.get() + '/ai/room/feedback/detail?id='+str(cur_id)
             
             resp = requests.get(my_url)
@@ -120,7 +124,81 @@ def getRoomInfo(event):
             #msgbox.showinfo("Info", "获取Room详细信息成功!")
         except:
             err_msg = "获取Room详细信息异常！"
-            msgbox.showerror("Error", err_msg)
+            msgbox.showerror("Error", err_msg)            
+
+
+'''获取选中的Room的详细信息 ''' 
+def getRoomInfo(event):   
+    global cur_room_id
+    cur_room_id = room_lb.get(room_lb.curselection())
+    requestAndDrawRoomInfo(False)
+    
+    
+'''反馈家具位置按钮回调函数'''
+def feedBack():
+    global response_text
+    global rect_x
+    if fur_direction_option.get() == '-1':
+            msgbox.showerror("Error", "请选择正确的家具正方向!")
+            return    
+        
+    if  fur_option.get() == '-1':
+        msgbox.showerror("Error", "请选择正确的家具类型ID!")
+        return    
+    else:  
+            
+        try:
+            updateRotationByObjDirection()
+            cur_id = RoomResponse.getIdFromShowText(cur_room_info_label["text"])       
+            cur_id_num = int(cur_id[3:])
+            msg = cur_id
+            if (len(rect_x) != 2):
+                msg = msg + '反馈位置： [category'  + fur_option.get() +'] '
+                postition = '(x:' + x_input.get() + ', y:' + y_input.get() + ', z:' + z_input.get() + ', rotation:' + rotation_input.get() + ')'
+            else:
+                msg = msg + '反馈区域： [category'  + fur_option.get() +'] '
+                postition = '(x:[%f,%f], y:[%f,%f], rotation:%s)' % (min(rect_x), max(rect_x), min(rect_y),max(rect_y),rotation_input.get())                
+            
+            msg = msg + postition + '!'
+            #feedback_pos[fur_input.get()] = postition      
+            room_fb_flag[cur_id_num] = True
+                  
+            prepareFeedback()             
+            print(feedback_list)                
+            
+            my_url = 'http://'+ host_ip.get() + '/ai/room/feedback/update/' + RoomResponse.getRidFromResp(response_text)      
+            headers={'content-type':'application/json'}
+            my_data = json.dumps(feedback_list)
+            post_r = requests.post(my_url,headers=headers, data=my_data)   
+            
+            '''记录到本地文件中'''
+            '''            
+            filename = 'feedback_record.txt'
+            with open(filename, 'a') as f:
+                record_list = []
+                record_list.append(response_text)
+                record_list.append(feedback_list)
+                record_str = json.dumps(record_list)
+                f.write(record_str)
+                f.write('\n')
+                f.close()
+            '''
+            fur_option.current(0)
+            fur_direction_option.current(0)
+            
+            msgbox.showinfo("Info", msg)  
+            resetForRoomDetail()
+            rect_x.clear()
+            rect_y.clear()
+            
+            requestAndDrawRoomInfo(True)
+            
+        except:
+            fur_option.current(0)
+            fur_direction_option.current(0)
+            msgbox.showerror("Error", "反馈过程出现异常，重新获取该room详细信息可确认反馈是否成功!")    
+        
+        return
 
 def isObjCategoryFeedbacked(obj_name):
     global feedback_list
@@ -251,69 +329,7 @@ def prepareFeedback():
         feedback_list.append(aijia_feedback)
         
     
-'''反馈家具位置按钮回调函数'''
-def feedBack():
-    global response_text
-    global rect_x
-    if fur_direction_option.get() == '-1':
-            msgbox.showerror("Error", "请选择正确的家具正方向!")
-            return    
-        
-    if  fur_option.get() == '-1':
-        msgbox.showerror("Error", "请选择正确的家具类型ID!")
-        return    
-    else:  
-            
-        try:
-            updateRotationByObjDirection()
-            cur_id = RoomResponse.getIdFromShowText(cur_room_info_label["text"])       
-            cur_id_num = int(cur_id[3:])
-            msg = cur_id
-            if (len(rect_x) != 2):
-                msg = msg + '反馈位置： [category'  + fur_option.get() +'] '
-                postition = '(x:' + x_input.get() + ', y:' + y_input.get() + ', z:' + z_input.get() + ', rotation:' + rotation_input.get() + ')'
-            else:
-                msg = msg + '反馈区域： [category'  + fur_option.get() +'] '
-                postition = '(x:[%f,%f], y:[%f,%f], rotation:%s)' % (min(rect_x), max(rect_x), min(rect_y),max(rect_y),rotation_input.get())                
-            
-            msg = msg + postition + ' success!'
-            #feedback_pos[fur_input.get()] = postition      
-            room_fb_flag[cur_id_num] = True
-                  
-            prepareFeedback()             
-            print(feedback_list)                
-            
-            my_url = 'http://'+ host_ip.get() + '/ai/room/feedback/update/' + RoomResponse.getRidFromResp(response_text)      
-            headers={'content-type':'application/json'}
-            my_data = json.dumps(feedback_list)
-            post_r = requests.post(my_url,headers=headers, data=my_data)   
-            
-            '''记录到本地文件中'''
-            '''            
-            filename = 'feedback_record.txt'
-            with open(filename, 'a') as f:
-                record_list = []
-                record_list.append(response_text)
-                record_list.append(feedback_list)
-                record_str = json.dumps(record_list)
-                f.write(record_str)
-                f.write('\n')
-                f.close()
-            '''
-            fur_option.current(0)
-            fur_direction_option.current(0)
-            
-            msgbox.showinfo("Info", msg)  
-            resetForRoomDetail()
-            rect_x.clear()
-            rect_y.clear()
-            
-        except:
-            fur_option.current(0)
-            fur_direction_option.current(0)
-            msgbox.showerror("Error", "反馈过程出现异常，重新获取该room详细信息可确认反馈是否成功!")    
-        
-        return
+
 
 def showFeedBackList():
     msg = ''
@@ -328,8 +344,42 @@ def showFeedBackList():
     msgbox.showinfo("Info", feedback_list)
     
 
-def pointRectGrow():
-    return
+def pointRectGrow():    
+    global response_text
+    if fur_direction_option.get() == '-1':
+        msgbox.showerror("Error", "请选择正确的家具正方向!")
+        return    
+    try:           
+        door_num, door_pos = RoomResponse.getDoorInfoFromRoom(response_text)
+        shape_point_num, shape_pos = RoomResponse.getWallShapeInfoFromRoom(response_text, "shapes")
+        wall_num, wall_pos = RoomResponse.getWallShapeInfoFromRoom(response_text, "walls")
+        window_num, window_pos = RoomResponse.getWindowInfoFromRoom(response_text) 
+        
+        
+        room_meta = MyRoom.RoomMeta(shape_point_num, shape_pos, wall_num, wall_pos, door_num, door_pos, window_num, window_pos)
+        wall_index = 1
+        if fur_direction_option.get() == '上':
+            wall_index = 2
+        elif fur_direction_option.get() == '下':
+            wall_index = 4
+        elif fur_direction_option.get() == '左':
+            wall_index = 1
+        elif fur_direction_option.get() == '右':
+            wall_index = 3
+        
+        left, right, top, bottom = room_meta.rectGrow(float(x_input.get()), float(y_input.get()), wall_index)
+        print(left, right, top, bottom)
+        x = [left, left, right, right]
+        y = [bottom, top, top, bottom]
+        rect = mpatches.Polygon([[1, 1], [1, 1], [1, 1]], facecolor='r', alpha=0.1)
+        rect.set_xy(list(zip(x,y)))  
+        dna_plt.add_patch(rect)
+        canvas.draw()
+        
+    except:
+        msgbox.showerror("Error", "区域生长失败!")
+        return       
+    
 
 def updateRotationByObjDirection():
     if fur_direction_option.get() == '上':
@@ -462,7 +512,7 @@ def drawDNA(response_text):
     
     canvas.draw() 
     
-    ''' 异形区域检测调试 '''   
+    ''' 异形区域检测调试, 区域生长 '''   
     '''
     PatternLearning.identifySpecialRect(shape_point_num, shape_pos, wall_num, wall_pos)
     start_x = float(x_input.get())
@@ -471,12 +521,25 @@ def drawDNA(response_text):
     print(start_x, start_y, left, right, top, bottom)
     rect = mpatches.Rectangle((left, bottom), right-left, top-bottom, color='b',alpha=0.3)
     dna_plt.add_patch(rect)
-    #dna_plt.grid(linestyle='--', color='dimgray', alpha = 0.5)
-    '''    
+    #dna_plt.grid(linestyle='--', color='dimgray', alpha = 0.5)        
+    '''
+    
+    mydata =[]    
     
     
+    
+    ax3d = Axes3D(fig3d)   
+        
     if True: #RoomResponse.isBedroom(response_text):
-        x_range, y_range, vmin, vmax = RoomResponse.getRange(shape_point_num, shape_pos)        
+        x_range, y_range, xmin, xmax, ymin, ymax = RoomResponse.getRange(shape_point_num, shape_pos)  
+        vmin = min(xmin, ymin)
+        vmax = max(xmax, ymax)
+        step = 50
+        X = np.arange(xmin-step,xmax+step,step)
+        Y = np.arange(ymin-step,ymax+step,step)              
+        Z = np.zeros([len(Y), len(X)])
+        X,Y = np.meshgrid(X, Y)
+        
         
         pos_exp = RoomResponse.getExpList(response_text)
         pos = RoomResponse.recoverPositionPoint(pos_exp, x_range, y_range)
@@ -499,7 +562,18 @@ def drawDNA(response_text):
                 x.append(i_value[i]['x'])
                 y.append(i_value[i]['y'])
             #dna_plt.scatter(x, y, marker=cur_marker, color=cur_color, label=str(i_key)) 
-            dna_plt.scatter(x, y, marker=cur_marker, color=cur_color, label=RoomResponse.getCategoryNameById(i_key)) 
+            mylabel = str(i_key) + '-'+ RoomResponse.getCategoryNameById(i_key)
+            dna_plt.scatter(x, y, marker=cur_marker, color=cur_color, label=mylabel) 
+            
+            
+            #if i_key == 318:
+            for j in range(len(x)):
+                pair = int(x[j]) - xmin,int(y[j]) - ymin
+                mydata.append(pair)
+                index_X = int((x[j] - xmin)/step)
+                index_Y = int((y[j] - ymin)/step)
+                Z[index_Y][index_X] += 1
+           
             
             for i in range(len(i_value)):
                 if 'isArea' in i_value[i] and i_value[i]['isArea'] == 0:
@@ -521,6 +595,7 @@ def drawDNA(response_text):
                     x.append(center_x - dx/2)
                     y.append(center_y + dy/2)
                     dna_plt.plot(x, y, color=cur_color, linewidth='0.8', alpha=0.5) 
+                    RoomResponse.addToZ(Z, xmin, ymin, min(x), max(x), min(y), max(y), step)
                 if 'isArea' in i_value[i] and i_value[i]['isArea'] == 1:
                     x = []
                     y = []
@@ -540,14 +615,19 @@ def drawDNA(response_text):
                     rect.set_xy(list(zip(x,y)))  
                     dna_plt.add_patch(rect)
                     dna_plt.plot(x, y, color=cur_color, linewidth='0.8', alpha=0.5) 
+                    RoomResponse.addToZ(Z, xmin, ymin, min(x), max(x), min(y), max(y),step)
         
         handles, labels = dna_plt.get_legend_handles_labels()
         dna_plt.legend(handles[::-1], labels[::-1], loc = 1)
         dna_plt.set_xlim([vmin-500, vmax+500])        
         dna_plt.set_ylim([vmin-500, vmax+500])
-        canvas.draw() 
-                    
         
+        ax3d.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='rainbow')
+        canvas.draw() 
+        '''
+        hm = HeatMap(mydata)            
+        hm.heatmap(save_as="heat.png") 
+        '''   
         
         #家具位置预测    
         '''
@@ -562,8 +642,8 @@ def drawDNA(response_text):
             
         if 120 in objPositon:    #衣柜
             dna_plt.plot(objPositon[120]['x'], objPositon[120]['y'], linewidth='3.0', color='hotpink')
-        '''
         
+        '''
         
 
 
@@ -590,7 +670,7 @@ if __name__ == '__main__':
     #tkinter.Button(root,text='绘制选中Room',command=drawDNA).grid(row=3,column=1, sticky=E+W)   
     tkinter.Button(root,text='保存反馈信息',command=feedBack).grid(row=2,column=1, sticky=tkinter.E+tkinter.W)    
     tkinter.Button(root,text='查看已反馈的Room', command=showFeedBackList, state=tkinter.DISABLED).grid(row=4,column=1,sticky=tkinter.E+tkinter.W)
-    tkinter.Button(root,text='区域生长', command=pointRectGrow, state=tkinter.DISABLED).grid(row=5,column=1,sticky=tkinter.E+tkinter.W)
+    tkinter.Button(root,text='区域生长', command=pointRectGrow).grid(row=5,column=1,sticky=tkinter.E+tkinter.W)
     
     
     cur_room_label = tkinter.Label(root, text='当前处理的Room：')
@@ -605,11 +685,19 @@ if __name__ == '__main__':
     canvas = FigureCanvasTkAgg(fig, master=root)  
     #canvas.show() 
     canvas.draw()
-    canvas.get_tk_widget().grid(row=1, column=2, rowspan=6, columnspan=3)  
+    canvas.get_tk_widget().grid(row=1, column=2, rowspan=3, columnspan=3)  
     canvas.mpl_connect('button_release_event', onPress)
     canvas.mpl_connect('motion_notify_event', onMotion)    
     #circ = mpatches.RegularPolygon((0, 0), 30, 10, color = 'g', alpha=0.5)
     polygon = mpatches.Polygon([[150, 150], [350, 400], [200, 600]], facecolor='g', alpha=0.5)
+    
+    fig3d = Figure(figsize=(7,6), dpi=100) 
+    ax3d = fig3d.add_subplot(111)
+    canvas = FigureCanvasTkAgg(fig3d, master=root)  
+    #canvas.show() 
+    canvas.draw()
+    canvas.get_tk_widget().grid(row=1, column=5, rowspan=3, columnspan=3)    
+   
     #rotate_arrow = mpatches.Arrow(100, 110, 11, 12, width=200, color='r')
 
     #放置标签、文本框和按钮等部件，并设置文本框的默认值和按钮的事件函数     
@@ -743,6 +831,7 @@ if __name__ == '__main__':
     
     
     room_fb_flag={}     #记录某个room是否反馈过
+    cur_room_id = 1     #记录当前room
     response_text = {}  #记录当前room的详细信息
     feedback_list = []
     rect_x = []

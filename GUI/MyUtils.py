@@ -124,3 +124,53 @@ def getXmaxOfDoorInWall(door_range):
 def getXminOfDoorInWall(door_range):
     x_min, x_max, y_min, y_max = getLimitOfDoorInWall(door_range)    
     return x_min
+
+
+def getGrowLimitWithDoorOrWindowInWall(x, y, door_range, direction, wall_min, wall_max): 
+    min_left_dist = 10000000
+    min_right_dist = 10000000
+    
+    if direction == 0:
+        x_min = wall_min
+        x_max = wall_max
+        for i in range(len(door_range['x'])):
+            tmp = door_range['x'][i]
+            
+            if tmp[0] < x and tmp[1] > x:
+                return -1, -1
+            
+            if tmp[1] < x:
+                if x - tmp[1] < min_left_dist:
+                    min_left_dist = x - tmp[1]
+                    x_min = tmp[1]
+                    
+            if tmp[0] > x:
+                if tmp[0] - x < min_right_dist:
+                    min_right_dist = tmp[0] - x
+                    x_max = tmp[0] 
+        return x_min, x_max
+       
+    min_top_dist = 1000000
+    min_bottom_dist = 1000000
+    if direction == 1:
+        y_min = wall_min
+        y_max = wall_max
+        for i in range(len(door_range['y'])):
+            tmp = door_range['y'][i]
+            
+            if tmp[0] < y and tmp[1] > y:
+                return -1, -1
+            
+            if tmp[1] < y:
+                if y - tmp[1] < min_bottom_dist:
+                    min_bottom_dist = y - tmp[1]
+                    y_min = tmp[1]
+                    
+            if tmp[0] > y:
+                if tmp[0] - y < min_top_dist:
+                    min_top_dist = tmp[0] - y
+                    y_max = tmp[0]
+        return y_min, y_max
+          
+            
+    return -1, -1

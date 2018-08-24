@@ -377,7 +377,23 @@ def getRange(shape_point_num, shape_pos):
         shape_dx = x_max - x_min
         shape_dy = y_max - y_min       
        
-        return shape_dx, shape_dy, min(x_min, y_min), max(x_max, y_max);
+        return shape_dx, shape_dy, x_min, x_max, y_min, y_max;
+    
+
+def addToZ(Z, xmin, ymin, cur_x_min, cur_x_max, cur_y_min, cur_y_max, step):
+    index_X_min = int((cur_x_min - xmin)/step)
+    index_X_max = int((cur_x_max - xmin)/step)
+    index_Y_min = int((cur_y_min - ymin)/step)
+    index_Y_max = int((cur_y_max - ymin)/step)
+    
+    sizeY = len(Z)
+    sizeX = len(Z[1])
+    
+    for x in range(index_X_min, index_X_max+1):
+        for y in range(index_Y_min, index_Y_max+1):
+            if y >= sizeY or x >= sizeX:
+                continue
+            Z[y][x] += 1       
                 
 
 categoryMap = {}
